@@ -207,3 +207,17 @@ for i, name in ipairs(tutosM2) do
 		files ( gkit_files )
 		files { gkit_dir .. "/tutos/M2/" .. name..'.cpp' }
 end
+
+projetsM2 = {
+	"tp1",
+	"tp1_quaternius"
+}
+
+for i, name in ipairs(projetsM2) do
+	project(name)
+		language "C++"
+		kind "ConsoleApp"
+		targetdir "bin"
+		files ( gkit_files )
+		files { gkit_dir .. "/tps/" .. name.. "/" .. name..'.cpp' }
+end
