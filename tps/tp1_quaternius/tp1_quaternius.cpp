@@ -44,17 +44,15 @@ struct Buffers
         // Materiaux
         // creer et remplir le buffer avec les parametres des matieres.
         glBindBuffer(GL_UNIFORM_BUFFER, material_buffer);
-        vec3 material_colors[meshes[0].mesh_materials().size() * 3];
+        vec4 material_colors[meshes[0].mesh_materials().size() * 2];
         Color color_temp;
         for (unsigned int i = 0; i < meshes[0].mesh_materials().size(); ++i) {
             color_temp = meshes[0].mesh_materials()[i].diffuse;
-            material_colors[i * 3] = vec3(color_temp.r, color_temp.g, color_temp.b);
-            color_temp = meshes[0].mesh_materials()[i].emission;
-            material_colors[(i * 3) + 1] = vec3(color_temp.r, color_temp.g, color_temp.b);
+            material_colors[i * 2] = vec4(color_temp.r, color_temp.g, color_temp.b, color_temp.a);
             color_temp = meshes[0].mesh_materials()[i].specular;
-            material_colors[(i * 3) + 2] = vec3(color_temp.r, color_temp.g, color_temp.b);
+            material_colors[(i * 2) + 1] = vec4(color_temp.r, color_temp.g, color_temp.b, color_temp.a);
         }
-        glBufferData(GL_UNIFORM_BUFFER, meshes[0].mesh_materials().size() * sizeof(vec3) * 3, material_colors, GL_STATIC_DRAW);
+        glBufferData(GL_UNIFORM_BUFFER, meshes[0].mesh_materials().size() * sizeof(vec4) * 2, material_colors, GL_STATIC_DRAW);
 
         // creer et remplir le buffer avec les exposants pour les reflets blinn-phong
         glBindBuffer(GL_UNIFORM_BUFFER, ns_buffer);
@@ -65,12 +63,18 @@ struct Buffers
         glBufferData(GL_UNIFORM_BUFFER, meshes[0].mesh_materials().size() * sizeof(float), ns, GL_STATIC_DRAW);
        
         // creer et remplir le buffer contenant l'indice de la matiere de chaque triangle
-        glBindBuffer(GL_UNIFORM_BUFFER, material_index_buffer);
-        GLuint material_triangle_index[meshes[0].materials().size()];
-        for (unsigned int i = 0; i < meshes[0].materials().size(); ++i) {
-            material_triangle_index[i] = meshes[0].materials()[i];
+        glBindVertexArray(vao);
+        glBindBuffer(GL_ARRAY_BUFFER, material_index_buffer);
+        GLint material_triangle_index[meshes[1].triangle_count() * 3];
+        for (int i = 0; i < meshes[1].triangle_count(); ++i) {
+            material_triangle_index[i * 3]     = meshes[1].materials()[i];
+            material_triangle_index[i * 3 + 1] = meshes[1].materials()[i];
+            material_triangle_index[i * 3 + 2] = meshes[1].materials()[i];
         }
-        glBufferData(GL_UNIFORM_BUFFER, meshes[0].materials().size(), material_triangle_index, GL_STATIC_DRAW);
+        glBufferData(GL_ARRAY_BUFFER, meshes[1].triangle_count() * 3 * sizeof(GLint), material_triangle_index, GL_STATIC_DRAW);
+        // attribut 4, indice de la matière du sommet
+        glVertexAttribPointer(4, 1, GL_FLOAT, GL_FALSE, 0, 0);
+        glEnableVertexAttribArray(4);
     }
     
     void loadMeshes(const int ind_mesh1, const int ind_mesh2)
@@ -133,15 +137,16 @@ struct Buffers
 };
 
 
-class TP : public AppTime
+class TP : public App
 {
 public:
     // constructeur : donner les dimensions de l'image, et eventuellement la version d'openGL.
-    TP( ) : AppTime(1024, 640) {}
+    TP( ) : App(1024, 640) {}
     
     // creation des objets de l'application
     int init( )
     {
+        m_lightObj = read_mesh("data/cube.obj");
         m_objet.meshes[0] = read_mesh("robot_quaternius/Robot.obj");
         // charger les meshes
         std::string mesh_path;
@@ -158,11 +163,12 @@ public:
         m_camera.lookat(Point(0, 2, 5), Point(0, 2, 0));
 
         std::string definitions;
-        definitions.append("#define NB_MATERIALS " + std::to_string(m_objet.meshes[0].mesh_materials().size() * 3));
+        definitions.append("#define NB_MATERIALS " + std::to_string(m_objet.meshes[0].mesh_materials().size() * 2));
         definitions.append("\n#define NB_MT_TRIANGLES " + std::to_string(m_objet.meshes[0].materials().size()));
         definitions.append("\n");
 
         m_program = read_program("tps/tp1_quaternius/tp1_quaternius.glsl", definitions.c_str());
+        //m_program_light = read_program("tps/tp1_quaternius/light.glsl");
         program_print_errors(m_program);
 
         
@@ -181,7 +187,9 @@ public:
     int quit()
     {
         release_program(m_program);
+        //release_program(m_program_light);
         m_objet.release();
+        m_lightObj.release();
         
         return 0;
     }
@@ -202,13 +210,15 @@ public:
             m_camera.translation((float) mx / (float) window_width(), (float) my / (float) window_height());
 
         glUseProgram(m_program);
-        Transform projection= m_camera.projection(window_width(), window_height(), 45);
-        Transform mvp = projection * m_camera.view() * Identity();
-        program_uniform(m_program, "mMatrix", Identity());
+        Transform projection = m_camera.projection(window_width(), window_height(), 45);
+        Transform model = Identity();
+        Transform mvp = projection * m_camera.view() * model;
+        //program_uniform(m_program, "mMatrix", model);
         program_uniform(m_program, "mvpMatrix", mvp);
-        program_uniform(m_program, "normalMatrix", Identity().normal());
-        program_uniform(m_program, "lightPos", vec3(10, 10, 5));
-        program_uniform(m_program, "viewPos", m_camera.position());
+        program_uniform(m_program, "normalMatrix", model.normal());
+        program_uniform(m_program, "view_pos", vec3(14, 10, 5));
+        program_uniform(m_program, "light_pos", vec3(10, 10, 5));
+        
         float speed = 4000.f;
         int t0 = (gt / (speed / 24.f));
         int t1 = t0 + 1;
@@ -216,7 +226,9 @@ public:
         int kf2 = t1 % 23 + 1;
         float t = (gt / (speed / 24.f));
         float dt = (t - t0) / (t1 - t0);
-        m_objet.loadMeshes(kf1, kf2);
+        if (m_kf1 != kf1 || m_kf2 != kf2) m_objet.loadMeshes(kf1, kf2);
+        m_kf1 = kf1;
+        m_kf2 = kf2;
         float time = ((int)t % 1000) / speed;
         program_uniform(m_program, "time", dt);
 
@@ -227,11 +239,6 @@ public:
         glUniformBlockBinding(m_program, material_block, 0);      
         // associe le contenu d'un buffer au block numero 0
         glBindBufferBase(GL_UNIFORM_BUFFER, 0, m_objet.material_buffer);
-
-        // on recommence pour les indices, avec un autre numero
-        GLuint index_block = glGetUniformBlockIndex(m_program, "IndexBlock");
-        glUniformBlockBinding(m_program, index_block, 1);
-        glBindBufferBase(GL_UNIFORM_BUFFER, 1, m_objet.material_index_buffer);
 
         // + exposants blinn-phong
         GLuint ns_material = glGetUniformBlockIndex(m_program, "ExposantBlinnPhong");
@@ -244,6 +251,12 @@ public:
         // dessiner les triangles de l'objet
         glDrawArrays(GL_TRIANGLES, 0, m_objet.vertex_count);
 
+        // Dessiner la source de lumière
+        /*glUseProgram(0);
+        glUseProgram(m_program_light);
+        //Transform light_t = Translation(Vector(m_camera.position())) * Translation(1, 1, 1);
+        draw(m_lightObj, m_program_light);*/
+
         // nettoyage
         glUseProgram(0);
         glBindVertexArray(0);
@@ -253,8 +266,11 @@ public:
 protected:
     Buffers m_objet;
     GLuint m_program;
+    GLuint m_program_light;
     Orbiter m_camera;
-    
+    int m_kf1;
+    int m_kf2;
+    Mesh m_lightObj;
 };
 
 

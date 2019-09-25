@@ -1,26 +1,37 @@
 #version 330
 
+#define M_PI 3.1415926535897932384626433832795
+
 #ifdef VERTEX_SHADER
 layout(location=0) in vec3 position1;
 layout(location=1) in vec3 normal1;
 layout(location=2) in vec3 position2;
 layout(location=3) in vec3 normal2;
+layout(location=4) in int material_idx_v;
 
-uniform mat4 mMatrix;
 uniform mat4 mvpMatrix;
 uniform mat4 normalMatrix;
 uniform float time;
 
+uniform vec3 view_pos;
+uniform vec3 light_pos;
+
 out vec3 vertex_normal;
 out vec3 vertex_position;
+out vec3 view_dir;
+out vec3 light_dir;
+flat out int material_idx;
 
 void main()
 {
     vec3 p;
     p = position1 * (1.0 - time) + position2 * time;
-    gl_Position= mvpMatrix * vec4(p, 1);
+    gl_Position = mvpMatrix * vec4(p, 1);
     vertex_normal = mat3(normalMatrix) * ((normal1 * (1.0 - time)) + (normal2 * time));
-    vertex_position= vec3(mMatrix * vec4(position1, 1));
+    vertex_position = vec3(mvpMatrix * vec4(p, 1));
+    view_dir = normalize(view_pos - vertex_position);
+    light_dir = normalize(light_pos - vertex_position);
+    material_idx = material_idx_v;
 }
 
 #endif
@@ -30,18 +41,15 @@ void main()
 
 in vec3 vertex_normal;
 in vec3 vertex_position;
-out vec4 fragment_color;
+flat in int material_idx;
+in vec3 view_dir;
+in vec3 light_dir;
 
-uniform vec3 lightPos;
-uniform vec3 viewPos;
+out vec4 fragment_color;
 
 uniform MaterialBlock
 {
-    vec3 colors[NB_MATERIALS];
-};
-uniform IndexBlock
-{
-    int color_indices[NB_MT_TRIANGLES];
+    vec4 colors[NB_MATERIALS];
 };
 uniform ExposantBlinnPhong
 {
@@ -51,26 +59,28 @@ uniform ExposantBlinnPhong
 
 void main()
 {
-    int color_index = color_indices[gl_PrimitiveID];
-    vec3 diffuse = colors[color_index * 3];
-    vec3 emission = colors[(color_index * 3) + 1];
-    vec3 specular = colors[(color_index * 3) + 2];
+    
+    vec4 diffuse = colors[material_idx * 2];
+    vec4 specular = colors[(material_idx * 2) + 1];
+
     vec3 normal = normalize(vertex_normal);
-    float ns = ns_tab[color_index];
+    float ns = ns_tab[material_idx];
+
+    vec3 h = normalize(view_dir + light_dir);
+    //float theta_h = max(0, dot(normal, h));
+    float cos_theta = max(0, dot(normal, h));
+    
+   
   	
     // diffuse
-    vec3 lightDir = normalize(lightPos - vertex_position);
-    float diff = max(0, dot(normal, lightDir));
-    diffuse = diff * diffuse;
+    diffuse = (diffuse / M_PI) ;
     
     // specular
-    vec3 viewDir = normalize(viewPos - vertex_position);
-    vec3 reflectDir = reflect(-lightDir, normal);  
-    float spec = pow(max(dot(viewDir, reflectDir), 0.0), ns);
-    specular = spec * specular;  
+    float spec = ((ns + 8)  / (8 * M_PI)) * pow(cos_theta, ns);
+    specular =  (spec * specular);
         
-    vec3 result = emission + diffuse + specular;
-    fragment_color = vec4(result, 1.0);
+    vec4 result =  3 * (diffuse + specular) * cos_theta;
+    fragment_color = result;
 }
 
 #endif
