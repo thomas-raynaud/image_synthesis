@@ -3,7 +3,7 @@ solution "gKit2light"
 
 	platforms { "x64", "x32" }
 
---~     location "build"
+--~ 	location "build"
 --~     if _PREMAKE_VERSION >="4.4" then
 --~         debugdir "./"
 --~     end
@@ -118,6 +118,7 @@ tutos = {
 	"tuto6",
 	"tuto7",
 	"tuto7_camera",
+	"tuto7_scene",
 	"tuto8",
 	"tuto9",
 	"tuto9_texture1",
@@ -142,7 +143,9 @@ tutos = {
 	"tuto6GL",
 	"tuto6GL_buffer",
 	"tuto_framebuffer",
+	"tuto_uniform_buffers",
 	"tuto_storage",
+	"tuto_storage2",
 	"tuto_storage_buffer",
 	"tuto_storage_texture",
 	"min_data",
@@ -196,7 +199,8 @@ tutosM2 = {
 	"tuto_stream",
 
 	"tuto_is",
-	"tuto_raytrace_fragment"
+	"tuto_raytrace_fragment",
+	"tuto_ao"
 }
 
 for i, name in ipairs(tutosM2) do
@@ -210,7 +214,8 @@ end
 
 projetsM2 = {
 	"tp1",
-	"tp1_quaternius"
+	"tp1_quaternius",
+	"tp2"
 }
 
 for i, name in ipairs(projetsM2) do
