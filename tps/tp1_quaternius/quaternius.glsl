@@ -35,10 +35,7 @@ void main()
     light_dir = normalize(light_pos - vec3(p));
     gl_Position = p;
 
-    shadowmap_coord = vec3(sourceMatrix * vec4(vertex_position, 1));
-    shadowmap_coord.x = (shadowmap_coord.x + 1) / 2;
-    shadowmap_coord.y = (shadowmap_coord.y + 1) / 2;
-    //shadowmap_coord.z = (shadowmap_coord.z + 1) / 2;
+    shadowmap_coord = vec3(sourceMatrix * vec4(vertex_position + 0.02 * vertex_normal, 1));
 }
 
 #endif
@@ -54,6 +51,8 @@ in vec3 light_dir;
 
 out vec4 fragment_color;
 
+uniform sampler2D shadowmap;
+
 uniform MaterialBlock
 {
     vec4 colors[NB_MATERIALS];
@@ -62,8 +61,6 @@ uniform ExposantBlinnPhong
 {
     float ns_tab[NB_MATERIALS];
 };
-
-uniform sampler2D shadowmap;
 
 
 void main()
@@ -79,6 +76,15 @@ void main()
     float theta_h = max(0, dot(normal, h));
     float cos_theta = max(0, dot(normal, light_dir));
    
+   // Mettre à l'ombre les objets non éclairés par la source de lumière
+    float depth = texture(shadowmap, shadowmap_coord.xy).x;
+    float shadow;
+    if (depth < shadowmap_coord.z) {
+        shadow = 0.1;
+    }
+    else {
+        shadow = 1.0;
+    }
   	
     // diffuse
     diffuse = (diffuse / M_PI) ;
@@ -86,20 +92,9 @@ void main()
     // specular
     float spec = ((ns + 8)  / (8 * M_PI)) * pow(theta_h, ns);
     specular =  (spec * specular);
+    if (shadow < 1.0) specular = specular * 0.0;
         
-    vec4 result =  3 * (diffuse + specular) * cos_theta;
-
-    // Mettre à l'ombre les objets non éclairés par la source de lumière
-    float depth = texture(shadowmap, shadowmap_coord.xy).z;
-    float shadow;
-    if (depth < shadowmap_coord.z) {
-        shadow = 1.0;
-    }
-    else {
-        shadow = 0.5;
-    }
-
-    fragment_color = result * shadow;
+    fragment_color =  3 * (diffuse + specular) * cos_theta * shadow;
 }
 
 #endif
