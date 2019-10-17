@@ -6,7 +6,7 @@ ifndef config
 endif
 export config
 
-PROJECTS := shader_kit image_viewer tuto1 tuto2 tuto3 tuto4 tuto5 tuto6 tuto7 tuto7_camera tuto8 tuto9 tuto9_texture1 tuto9_textures tuto9_buffers tuto10 tuto_transform tuto_pad tuto1GL tuto2GL tuto2GL_app tuto3GL tuto3GL_reflect tuto4GL tuto4GL_normals tuto5GL tuto5GL_sampler tuto5GL_samplers tuto5GL_multi tuto6GL tuto6GL_buffer tuto_framebuffer tuto_storage tuto_storage_buffer tuto_storage_texture min_data tuto_vertex_compute mesh_viewer tuto_time tuto_mdi tuto_mdi_count tuto_stream tuto_is tuto_raytrace_fragment tp1 tp1_quaternius
+PROJECTS := shader_kit image_viewer tuto1 tuto2 tuto3 tuto4 tuto5 tuto6 tuto7 tuto7_camera tuto7_scene tuto8 tuto9 tuto9_texture1 tuto9_textures tuto9_buffers tuto10 tuto_transform tuto_pad tuto1GL tuto2GL tuto2GL_app tuto3GL tuto3GL_reflect tuto4GL tuto4GL_normals tuto5GL tuto5GL_sampler tuto5GL_samplers tuto5GL_multi tuto6GL tuto6GL_buffer tuto_framebuffer tuto_uniform_buffers tuto_storage tuto_storage2 tuto_storage_buffer tuto_storage_texture min_data tuto_vertex_compute mesh_viewer tuto_time tuto_mdi tuto_mdi_count tuto_stream tuto_is tuto_raytrace_fragment tuto_ao tp1 tp1_quaternius tp2
 
 .PHONY: all clean help $(PROJECTS)
 
@@ -51,6 +51,10 @@ tuto7:
 tuto7_camera: 
 	@echo "==== Building tuto7_camera ($(config)) ===="
 	@${MAKE} --no-print-directory -C . -f tuto7_camera.make
+
+tuto7_scene: 
+	@echo "==== Building tuto7_scene ($(config)) ===="
+	@${MAKE} --no-print-directory -C . -f tuto7_scene.make
 
 tuto8: 
 	@echo "==== Building tuto8 ($(config)) ===="
@@ -140,9 +144,17 @@ tuto_framebuffer:
 	@echo "==== Building tuto_framebuffer ($(config)) ===="
 	@${MAKE} --no-print-directory -C . -f tuto_framebuffer.make
 
+tuto_uniform_buffers: 
+	@echo "==== Building tuto_uniform_buffers ($(config)) ===="
+	@${MAKE} --no-print-directory -C . -f tuto_uniform_buffers.make
+
 tuto_storage: 
 	@echo "==== Building tuto_storage ($(config)) ===="
 	@${MAKE} --no-print-directory -C . -f tuto_storage.make
+
+tuto_storage2: 
+	@echo "==== Building tuto_storage2 ($(config)) ===="
+	@${MAKE} --no-print-directory -C . -f tuto_storage2.make
 
 tuto_storage_buffer: 
 	@echo "==== Building tuto_storage_buffer ($(config)) ===="
@@ -188,6 +200,10 @@ tuto_raytrace_fragment:
 	@echo "==== Building tuto_raytrace_fragment ($(config)) ===="
 	@${MAKE} --no-print-directory -C . -f tuto_raytrace_fragment.make
 
+tuto_ao: 
+	@echo "==== Building tuto_ao ($(config)) ===="
+	@${MAKE} --no-print-directory -C . -f tuto_ao.make
+
 tp1: 
 	@echo "==== Building tp1 ($(config)) ===="
 	@${MAKE} --no-print-directory -C . -f tp1.make
@@ -195,6 +211,10 @@ tp1:
 tp1_quaternius: 
 	@echo "==== Building tp1_quaternius ($(config)) ===="
 	@${MAKE} --no-print-directory -C . -f tp1_quaternius.make
+
+tp2: 
+	@echo "==== Building tp2 ($(config)) ===="
+	@${MAKE} --no-print-directory -C . -f tp2.make
 
 clean:
 	@${MAKE} --no-print-directory -C . -f shader_kit.make clean
@@ -207,6 +227,7 @@ clean:
 	@${MAKE} --no-print-directory -C . -f tuto6.make clean
 	@${MAKE} --no-print-directory -C . -f tuto7.make clean
 	@${MAKE} --no-print-directory -C . -f tuto7_camera.make clean
+	@${MAKE} --no-print-directory -C . -f tuto7_scene.make clean
 	@${MAKE} --no-print-directory -C . -f tuto8.make clean
 	@${MAKE} --no-print-directory -C . -f tuto9.make clean
 	@${MAKE} --no-print-directory -C . -f tuto9_texture1.make clean
@@ -229,7 +250,9 @@ clean:
 	@${MAKE} --no-print-directory -C . -f tuto6GL.make clean
 	@${MAKE} --no-print-directory -C . -f tuto6GL_buffer.make clean
 	@${MAKE} --no-print-directory -C . -f tuto_framebuffer.make clean
+	@${MAKE} --no-print-directory -C . -f tuto_uniform_buffers.make clean
 	@${MAKE} --no-print-directory -C . -f tuto_storage.make clean
+	@${MAKE} --no-print-directory -C . -f tuto_storage2.make clean
 	@${MAKE} --no-print-directory -C . -f tuto_storage_buffer.make clean
 	@${MAKE} --no-print-directory -C . -f tuto_storage_texture.make clean
 	@${MAKE} --no-print-directory -C . -f min_data.make clean
@@ -241,8 +264,10 @@ clean:
 	@${MAKE} --no-print-directory -C . -f tuto_stream.make clean
 	@${MAKE} --no-print-directory -C . -f tuto_is.make clean
 	@${MAKE} --no-print-directory -C . -f tuto_raytrace_fragment.make clean
+	@${MAKE} --no-print-directory -C . -f tuto_ao.make clean
 	@${MAKE} --no-print-directory -C . -f tp1.make clean
 	@${MAKE} --no-print-directory -C . -f tp1_quaternius.make clean
+	@${MAKE} --no-print-directory -C . -f tp2.make clean
 
 help:
 	@echo "Usage: make [config=name] [target]"
@@ -266,6 +291,7 @@ help:
 	@echo "   tuto6"
 	@echo "   tuto7"
 	@echo "   tuto7_camera"
+	@echo "   tuto7_scene"
 	@echo "   tuto8"
 	@echo "   tuto9"
 	@echo "   tuto9_texture1"
@@ -288,7 +314,9 @@ help:
 	@echo "   tuto6GL"
 	@echo "   tuto6GL_buffer"
 	@echo "   tuto_framebuffer"
+	@echo "   tuto_uniform_buffers"
 	@echo "   tuto_storage"
+	@echo "   tuto_storage2"
 	@echo "   tuto_storage_buffer"
 	@echo "   tuto_storage_texture"
 	@echo "   min_data"
@@ -300,7 +328,9 @@ help:
 	@echo "   tuto_stream"
 	@echo "   tuto_is"
 	@echo "   tuto_raytrace_fragment"
+	@echo "   tuto_ao"
 	@echo "   tp1"
 	@echo "   tp1_quaternius"
+	@echo "   tp2"
 	@echo ""
 	@echo "For more information, see http://industriousone.com/premake/quick-start"

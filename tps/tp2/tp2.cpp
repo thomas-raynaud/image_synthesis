@@ -12,6 +12,8 @@
 #include "image_io.h"
 #include "image_hdr.h"
 
+#define EPSILON 0.0001
+
 
 struct Ray
 {
@@ -215,8 +217,8 @@ struct World
 
 int main( const int argc, const char **argv )
 {
-    const char *mesh_filename= "cornell.obj";
-    const char *orbiter_filename= "cornell_orbiter.txt";
+    const char *mesh_filename= "tps/tp2/cornell.obj";
+    const char *orbiter_filename= "tps/tp2/cornell_orbiter.txt";
     
     if(argc > 1) mesh_filename= argv[1];
     if(argc > 2) orbiter_filename= argv[2];
@@ -269,9 +271,14 @@ int main( const int argc, const char **argv )
             // generer le rayon pour le pixel (x, y)
             float x= px + u01(rng);
             float y= py + u01(rng);
+
             
-            Point o= { ... } // origine dans l'image
-            Point e= { ... } // extremite dans l'image
+            
+            Point o(x, y, 0); // origine dans l'image
+            Point e(x, y, 1); // extremite dans l'image
+            o = camera.view().inverse()(projection.inverse()(viewport.inverse()(o)));
+            e = camera.view().inverse()(projection.inverse()(viewport.inverse()(e)));
+            
             
             Ray ray(o, e);
             // calculer les intersections 
@@ -285,10 +292,45 @@ int main( const int argc, const char **argv )
                 // retourne la normale pour faire face a la camera / origine du rayon...
                 if(dot(pn, ray.d) > 0)
                     pn= -pn;
-                
+
+                bool estEclaire = true;
+                Point s, a, b, c;
+                Vector sn;  // Normale de la source
+                Ray ray2;   // Rayon d'ombre.
+                float d;    // Distance point source
+                float alpha, beta, gamma;
+                float r1, r2;
+                float cos_theta, cos_theta_s;
+                float triangle_area;
+                // Créer un rayon entre le point touché et chaque source. Si la source n'est pas visible
+                // depuis le point, on l'affiche en noir.
+                for (int i = 0; i < sources.sources.size(); ++i) {
+                    for (int j = 0; j < 64; ++j) { // 16 rayons par source
+                        a = sources.sources[i].a;
+                        b = sources.sources[i].b;
+                        c = sources.sources[i].c;
+                        // Générer un point aléatoire sur la source
+                        r1 = u01(rng);
+                        r2 = u01(rng);
+                        alpha = 1 - sqrt(r1);
+                        beta = (1 - r2) * sqrt(r1);
+                        gamma = r2 * sqrt(r1);
+                        s = a * alpha + b * beta + c * gamma; // Point aléatoire
+                        triangle_area = length(cross(Vector(a), Vector(b)) + cross(Vector(b), Vector(c)) + cross(Vector(c), Vector(a))) / 2;
+
+                        sn = normalize(cross(b - a, c - a));
+                        ray2 = Ray(p + EPSILON * pn, s + EPSILON * sn);
+                        d = length(p - s);
+                        cos_theta = std::max(0.f, dot(pn, normalize(ray2.d)));
+                        cos_theta_s = std::max(0.f, dot(sn, normalize(-ray2.d)));
+                        color = color + (sources.sources[i].emission * (1.f / float(M_PI) * material.diffuse) * bvh.visible(ray2) * ((cos_theta * cos_theta_s) / pow(d, 2)) * (1 / triangle_area));
+                    }
+                    
+                }
+                color = color / sources.sources.size();
                 // accumuler la couleur de l'echantillon
-                float cos_theta= std::max(0.f, dot(pn, normalize(-ray.d)));
-                color= color + 1.f / float(M_PI) * material.diffuse * cos_theta;
+                /*float cos_theta= std::max(0.f, dot(pn, normalize(-ray.d)));
+                if (estEclaire) color= color + 1.f / float(M_PI) * material.diffuse * cos_theta;*/
             }
             
             image(px, py)= Color(color, 1);
@@ -300,7 +342,7 @@ int main( const int argc, const char **argv )
     printf("cpu  %ds %03dms\n", int(cpu_time / 1000), int(cpu_time % 1000));
     
     // enregistrer l'image resultat
-    write_image(image, "render.png");
-    write_image_hdr(image, "render.hdr");
+    write_image(image, "tps/tp2/render.png");
+    write_image_hdr(image, "tps/tp2/render.hdr");
     return 0;
 }
