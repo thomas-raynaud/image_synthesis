@@ -6,7 +6,7 @@ ifndef config
 endif
 export config
 
-PROJECTS := shader_kit image_viewer tuto1 tuto2 tuto3 tuto4 tuto5 tuto6 tuto7 tuto7_camera tuto7_scene tuto8 tuto9 tuto9_texture1 tuto9_textures tuto9_buffers tuto10 tuto_transform tuto_pad tuto1GL tuto2GL tuto2GL_app tuto3GL tuto3GL_reflect tuto4GL tuto4GL_normals tuto5GL tuto5GL_sampler tuto5GL_samplers tuto5GL_multi tuto6GL tuto6GL_buffer tuto_framebuffer tuto_uniform_buffers tuto_storage tuto_storage2 tuto_storage_buffer tuto_storage_texture min_data tuto_vertex_compute mesh_viewer tuto_time tuto_mdi tuto_mdi_count tuto_stream tuto_is tuto_raytrace_fragment tuto_ao tp1 tp1_quaternius tp2
+PROJECTS := shader_kit image_viewer directions tuto1 tuto2 tuto3 tuto4 tuto5 tuto6 tuto7 tuto7_camera tuto7_scene tuto8 tuto9 tuto9_texture1 tuto9_textures tuto9_buffers tuto10 tuto_transform tuto_pad tuto1GL tuto2GL tuto2GL_app tuto3GL tuto3GL_reflect tuto4GL tuto4GL_normals tuto5GL tuto5GL_sampler tuto5GL_samplers tuto5GL_multi tuto6GL tuto6GL_buffer tuto_framebuffer tuto_uniform_buffers tuto_storage tuto_storage2 tuto_storage_buffer tuto_storage_texture min_data tuto_vertex_compute mesh_viewer tuto_time tuto_mdi tuto_mdi_count tuto_stream tuto_is tuto_raytrace_fragment tuto_ao tp1 tp1_quaternius tp2
 
 .PHONY: all clean help $(PROJECTS)
 
@@ -19,6 +19,10 @@ shader_kit:
 image_viewer: 
 	@echo "==== Building image_viewer ($(config)) ===="
 	@${MAKE} --no-print-directory -C . -f image_viewer.make
+
+directions: 
+	@echo "==== Building directions ($(config)) ===="
+	@${MAKE} --no-print-directory -C . -f directions.make
 
 tuto1: 
 	@echo "==== Building tuto1 ($(config)) ===="
@@ -219,6 +223,7 @@ tp2:
 clean:
 	@${MAKE} --no-print-directory -C . -f shader_kit.make clean
 	@${MAKE} --no-print-directory -C . -f image_viewer.make clean
+	@${MAKE} --no-print-directory -C . -f directions.make clean
 	@${MAKE} --no-print-directory -C . -f tuto1.make clean
 	@${MAKE} --no-print-directory -C . -f tuto2.make clean
 	@${MAKE} --no-print-directory -C . -f tuto3.make clean
@@ -283,6 +288,7 @@ help:
 	@echo "   clean"
 	@echo "   shader_kit"
 	@echo "   image_viewer"
+	@echo "   directions"
 	@echo "   tuto1"
 	@echo "   tuto2"
 	@echo "   tuto3"

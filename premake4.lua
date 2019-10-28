@@ -96,7 +96,8 @@ end
  -- description des projets		 
 projects = {
 	"shader_kit",
-	"image_viewer"
+	"image_viewer",
+	"directions"
 }
 
 for i, name in ipairs(projects) do

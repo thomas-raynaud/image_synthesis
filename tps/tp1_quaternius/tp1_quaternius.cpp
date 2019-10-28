@@ -10,7 +10,7 @@
 #include "uniforms.h"
 
 #include "ortho.h"
-#include "object.h"
+#include "gen_cube.h"
 
 #define NB_MESHES 23    // Nombre de mesh utilisés pour animer le robot
 #define SPEED 4000.f    // Vitesse de l'animation du robot
@@ -66,7 +66,8 @@ public:
         // Objets de la scene.
         glGenVertexArrays(1, &m_vao_obj);
         glBindVertexArray(m_vao_obj);
-        mesh = read_mesh("data/cube.obj");
+        //mesh = read_mesh("data/cube.obj");
+        mesh = create_mesh(2, 2, 2);
         m_vertex_count_obj = mesh.vertex_count();
         glBindBuffer(GL_ARRAY_BUFFER, m_vertex_buffer_obj);
         glBufferData(GL_ARRAY_BUFFER, m_vertex_count_obj * sizeof(vec3) * 2, nullptr, GL_STATIC_DRAW);

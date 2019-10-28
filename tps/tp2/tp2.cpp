@@ -1,4 +1,3 @@
-
 #include <cfloat>
 #include <random>
 #include <chrono>
@@ -13,6 +12,9 @@
 #include "image_hdr.h"
 
 #define EPSILON 0.0001
+#define GAMMA 1.5
+#define NB_RAYONS 64
+#define NB_REBONDS 4
 
 
 struct Ray
@@ -153,14 +155,46 @@ struct Source
 {
     Point a, b, c;
     Color emission;
+    Vector n;
+    float area;
     
-    Source( ) {}
-    Source( const TriangleData& data, const Color& color ) : a(data.a), b(data.b), c(data.c), emission(color) {}
+    Source( ) : a(), b(), c(), emission(), n(), area() {}
+    
+    Source( const TriangleData& data, const Color& color ) : a(data.a), b(data.b), c(data.c), emission(color)
+    {
+       // normale geometrique du triangle abc, produit vectoriel des aretes ab et ac
+        Vector ng= cross(Vector(a, b), Vector(a, c));
+        n= normalize(ng);
+        area= length(ng) / 2;
+    }
+    
+    Point sample( const float u1, const float u2 ) const
+    {
+        // cf GI compemdium eq 18
+        float r1= std::sqrt(u1);
+        float alpha= 1 - r1;
+        float beta= (1 - u2) * r1;
+        float gamma= u2 * r1;
+        return alpha*a + beta*b + gamma*c;
+    }
+    
+    float pdf( const Point& p ) const
+    {
+        // renvoye 0 pour les points a l'exterieur du triangle
+        if (dot(n, cross(c - p, a - p)) < 0
+            || dot(n, cross(a - p, b - p)) < 0
+            || dot(n, cross(b - p, c - p)) < 0)
+            return 0.f;
+
+        return 1.f / area;
+    }
 };
 
 struct Sources
 {
     std::vector<Source> sources;
+    float emission;     // emission totale des sources
+    float area;         // aire totale des sources
     
     Sources( const Mesh& mesh ) : sources()
     {
@@ -172,15 +206,26 @@ struct Sources
     
     void build( const Mesh& mesh )
     {
+        area= 0;
+        emission= 0;
         sources.clear();
         for(int id= 0; id < mesh.triangle_count(); id++)
         {
             const TriangleData& data= mesh.triangle(id);
             const Material& material= mesh.triangle_material(id);
             if(material.emission.power() > 0)
-                sources.push_back( Source(data, material.emission) );
+            {
+                Source source(data, material.emission);
+                emission= emission + source.area * source.emission.power();
+                area= area + source.area;
+                
+                sources.push_back(source);
+            }
         }
     }
+    
+    int size( ) const { return int(sources.size()); }
+    const Source& operator() ( const int id ) const { return sources[id]; }
 };
 
 
@@ -214,6 +259,100 @@ struct World
     Vector n;
 };
 
+bool inSource(const Vector &p, const Source &triangle, const Vector &n) {
+    Vector a, b, c;
+    a = Vector(triangle.a);
+    b = Vector(triangle.b);
+    c = Vector(triangle.c);
+    return (dot(n, cross(c - p, a - p)) >= 0
+                && dot(n, cross(a - p, b - p)) >= 0
+                && dot(n, cross(b - p, c - p)) >= 0
+                && dot(p - a, n) == 0);
+}
+
+Color direct(Vector p, Vector pn,
+            const Color &diffuse,
+            const Sources &sources, const BVH& bvh,
+            const Mesh &mesh,
+            std::default_random_engine rng,
+            std::uniform_real_distribution<float> u01,
+            int nbRebonds) {
+
+    Color color = Black();
+    float u1, u2, d_ps, cos_theta, cos_theta_s;
+    Point s;
+    Vector a, b, c, sn;
+    Ray ray_ps;
+    Hit h;
+    bool pointInSource = false;
+    
+    // Créer un rayon entre le point touché et chaque source. Si la source n'est pas visible
+    // depuis le point, on l'affiche en noir.
+    for (uint i = 0; i < sources.sources.size(); ++i) {
+        a = Vector(sources.sources[i].a);
+        b = Vector(sources.sources[i].b);
+        c = Vector(sources.sources[i].c);
+        sn = sources.sources[i].n;
+        if (nbRebonds == NB_REBONDS && inSource(p, sources.sources[i], sn)) {
+            pointInSource = true;
+            color = sources.sources[i].emission;
+            break;
+        }
+        u1 = u01(rng);
+        u2 = u01(rng);
+        s = sources.sources[i].sample(u1, u2); // Point aléatoire sur la source
+        
+        ray_ps = Ray(Point(p) + EPSILON * pn, s/* + EPSILON * sn*/);
+        d_ps = length(Point(p) - s);
+        cos_theta = std::max(0.f, dot(pn, normalize(ray_ps.d)));
+        cos_theta_s = std::max(0.f, dot(sn, normalize(-ray_ps.d)));
+        color = color + (sources.sources[i].emission * (1.f / float(M_PI) * diffuse) * bvh.visible(ray_ps) * ((cos_theta * cos_theta_s) / pow(d_ps, 2)));
+    }
+    if (!pointInSource)
+        color = color / sources.sources.size();
+    return color;
+}
+
+Color indirect(Vector p, Vector pn,
+                const Sources &sources, const BVH& bvh,
+                const Mesh &mesh,
+                std::default_random_engine rng,
+                std::uniform_real_distribution<float> u01,
+                int nbRebonds) {
+
+    Color color = Black(), diffuse;
+    float u1, u2, phi, cos_theta;
+    Vector v_local, v, qn;
+    Point q;
+    struct World world(pn);
+    Ray ray_pq;
+    Hit h;
+
+    // Générer une direction aléatoire depuis p
+    u1 = u01(rng);
+    u2 = u01(rng);
+
+    phi = 2 * float(M_PI) * u1;
+    v_local = Vector(cos(phi) * sqrt(1 - u2), sin(phi) * sqrt(1 - u2), sqrt(u2));
+
+    v = world(v_local);
+    ray_pq = Ray(Point(p) + EPSILON * pn, v);
+    if ((h = bvh.intersect(ray_pq))) {
+        q = point(h, ray_pq);
+        qn = normal(h, mesh.triangle(h.triangle_id));
+        diffuse = mesh.triangle_material(h.triangle_id).diffuse;
+        if (dot(pn, ray_pq.d) > 0)
+            qn= -qn;
+        cos_theta = std::max(0.f, dot(pn, normalize(v)));
+        color = color + direct(Vector(q), qn, diffuse, sources, bvh, mesh, rng, u01, nbRebonds - 1) + (1.f / float(M_PI) * diffuse) * (1 / M_PI) * cos_theta;
+        if (nbRebonds > 1) {
+            nbRebonds--;
+            color = color + indirect(Vector(q), qn, sources, bvh, mesh, rng, u01, nbRebonds) * 0.5;
+        }
+    }
+    return color;
+}
+
 
 int main( const int argc, const char **argv )
 {
@@ -245,98 +384,72 @@ int main( const int argc, const char **argv )
         return 1;
     
     // recupere les transformations view, projection et viewport pour generer les rayons
-    Transform model= Identity();
-    Transform view= camera.view();
     Transform projection= camera.projection(image.width(), image.height(), 45);
     Transform viewport= Viewport(image.width(), image.height());
+    float r1, r2;
 
     auto cpu_start= std::chrono::high_resolution_clock::now();
     
     // parcourir tous les pixels de l'image
     // en parallele avec openMP, un thread par bloc de 16 lignes
 #pragma omp parallel for schedule(dynamic, 1)
-    for(int py= 0; py < image.height(); py++)
-    {
+    for(int py= 0; py < image.height(); py++) {
         // nombres aleatoires, version c++11
         std::random_device seed;
         // un generateur par thread... pas de synchronisation
         std::default_random_engine rng(seed());
         // nombres aleatoires entre 0 et 1
         std::uniform_real_distribution<float> u01(0.f, 1.f);
-        
-        for(int px= 0; px < image.width(); px++)
-        {
+
+        for(int px= 0; px < image.width(); px++) {
             Color color= Black();
-            
-            // generer le rayon pour le pixel (x, y)
-            float x= px + u01(rng);
-            float y= py + u01(rng);
+
+            for (int i = 0; i < NB_RAYONS; ++i) {
+                r1 = u01(rng);
+                r2 = u01(rng);
+
+                // generer le rayon pour le pixel (x, y)
+                float x= px + r1;
+                float y= py + r2;
 
             
             
-            Point o(x, y, 0); // origine dans l'image
-            Point e(x, y, 1); // extremite dans l'image
-            o = camera.view().inverse()(projection.inverse()(viewport.inverse()(o)));
-            e = camera.view().inverse()(projection.inverse()(viewport.inverse()(e)));
+                Point o(x, y, 0); // origine dans l'image
+                Point e(x, y, 1); // extremite dans l'image
+                o = camera.view().inverse()(projection.inverse()(viewport.inverse()(o)));
+                e = camera.view().inverse()(projection.inverse()(viewport.inverse()(e)));
             
             
-            Ray ray(o, e);
-            // calculer les intersections 
-            if(Hit hit= bvh.intersect(ray))
-            {
-                const TriangleData& triangle= mesh.triangle(hit.triangle_id);           // recuperer le triangle
-                const Material& material= mesh.triangle_material(hit.triangle_id);      // et sa matiere
-                
-                Point p= point(hit, ray);               // point d'intersection
-                Vector pn= normal(hit, triangle);       // normale interpolee du triangle au point d'intersection
-                // retourne la normale pour faire face a la camera / origine du rayon...
-                if(dot(pn, ray.d) > 0)
-                    pn= -pn;
-
-                bool estEclaire = true;
-                Point s, a, b, c;
-                Vector sn;  // Normale de la source
-                Ray ray2;   // Rayon d'ombre.
-                float d;    // Distance point source
-                float alpha, beta, gamma;
-                float r1, r2;
-                float cos_theta, cos_theta_s;
-                float triangle_area;
-                // Créer un rayon entre le point touché et chaque source. Si la source n'est pas visible
-                // depuis le point, on l'affiche en noir.
-                for (int i = 0; i < sources.sources.size(); ++i) {
-                    for (int j = 0; j < 64; ++j) { // 16 rayons par source
-                        a = sources.sources[i].a;
-                        b = sources.sources[i].b;
-                        c = sources.sources[i].c;
-                        // Générer un point aléatoire sur la source
-                        r1 = u01(rng);
-                        r2 = u01(rng);
-                        alpha = 1 - sqrt(r1);
-                        beta = (1 - r2) * sqrt(r1);
-                        gamma = r2 * sqrt(r1);
-                        s = a * alpha + b * beta + c * gamma; // Point aléatoire
-                        triangle_area = length(cross(Vector(a), Vector(b)) + cross(Vector(b), Vector(c)) + cross(Vector(c), Vector(a))) / 2;
-
-                        sn = normalize(cross(b - a, c - a));
-                        ray2 = Ray(p + EPSILON * pn, s + EPSILON * sn);
-                        d = length(p - s);
-                        cos_theta = std::max(0.f, dot(pn, normalize(ray2.d)));
-                        cos_theta_s = std::max(0.f, dot(sn, normalize(-ray2.d)));
-                        color = color + (sources.sources[i].emission * (1.f / float(M_PI) * material.diffuse) * bvh.visible(ray2) * ((cos_theta * cos_theta_s) / pow(d, 2)) * (1 / triangle_area));
-                    }
+                Ray ray(o, e);
+                // calculer les intersections 
+                if(Hit hit= bvh.intersect(ray)) {
+                    const TriangleData& triangle= mesh.triangle(hit.triangle_id);           // recuperer le triangle
+                    const Material& material= mesh.triangle_material(hit.triangle_id);      // et sa matiere
                     
+                    Point p= point(hit, ray);               // point d'intersection
+                    Vector pn = normal(hit, mesh.triangle(hit.triangle_id));
+                    if (dot(pn, ray.d) > 0)
+                        pn= -pn;
+
+                    color = color + direct(Vector(p), pn, material.diffuse, sources, bvh, mesh, rng, u01, NB_REBONDS);
+                    color = color + indirect(Vector(p), pn, sources, bvh, mesh, rng, u01, NB_REBONDS);               
                 }
-                color = color / sources.sources.size();
-                // accumuler la couleur de l'echantillon
-                /*float cos_theta= std::max(0.f, dot(pn, normalize(-ray.d)));
-                if (estEclaire) color= color + 1.f / float(M_PI) * material.diffuse * cos_theta;*/
+                
             }
             
-            image(px, py)= Color(color, 1);
+            color = color / NB_RAYONS;
+
+            // Tonemapper
+            /*
+            color.r = pow(color.r, 1 / GAMMA);
+            color.g = pow(color.g, 1 / GAMMA);
+            color.b = pow(color.b, 1 / GAMMA);
+            */
+            
+            image(px, py) = Color(color, 1);
         }
     }
-    
+
     auto cpu_stop= std::chrono::high_resolution_clock::now();
     int cpu_time= std::chrono::duration_cast<std::chrono::milliseconds>(cpu_stop - cpu_start).count();
     printf("cpu  %ds %03dms\n", int(cpu_time / 1000), int(cpu_time % 1000));
