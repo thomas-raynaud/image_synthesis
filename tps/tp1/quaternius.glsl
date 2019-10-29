@@ -35,7 +35,7 @@ void main()
     light_dir = normalize(light_pos - vec3(p));
     gl_Position = p;
 
-    shadowmap_coord = vec3(sourceMatrix * vec4(vertex_position + 0.02 * vertex_normal, 1));
+    shadowmap_coord = vec3(sourceMatrix * vec4(vertex_position + 0.03 * vertex_normal, 1));
     vertex_normal = mat3(normalMatrix) * vertex_normal;
 }
 

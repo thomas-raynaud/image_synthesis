@@ -93,135 +93,27 @@ if no_project then
 	do return end
 end
 
- -- description des projets		 
-projects = {
-	"shader_kit",
-	"image_viewer",
-	"directions"
-}
+ -- image viewer
 
-for i, name in ipairs(projects) do
-	project(name)
-		language "C++"
-		kind "ConsoleApp"
-		targetdir "bin"
-		files ( gkit_files )
-		files { gkit_dir .. "/src/" .. name..'.cpp' }
-end
+project("image_viewer")
+    language "C++"
+    kind "ConsoleApp"
+    targetdir "bin"
+    files ( gkit_files )
+    files { gkit_dir .. "/src/image_viewer.cpp" }
 
- -- description des tutos
-tutos = {
-	"tuto1",
-	"tuto2",
-	"tuto3",
-	"tuto4",
-	"tuto5",
-	"tuto6",
-	"tuto7",
-	"tuto7_camera",
-	"tuto7_scene",
-	"tuto8",
-	"tuto9",
-	"tuto9_texture1",
-	"tuto9_textures",
-	"tuto9_buffers",
-	"tuto10",
-	
-	"tuto_transform",
-	"tuto_pad",
-	
-	"tuto1GL",
-	"tuto2GL",
-	"tuto2GL_app",
-	"tuto3GL",
-	"tuto3GL_reflect",
-	"tuto4GL",
-	"tuto4GL_normals",
-	"tuto5GL",
-	"tuto5GL_sampler",
-	"tuto5GL_samplers",
-	"tuto5GL_multi",
-	"tuto6GL",
-	"tuto6GL_buffer",
-	"tuto_framebuffer",
-	"tuto_uniform_buffers",
-	"tuto_storage",
-	"tuto_storage2",
-	"tuto_storage_buffer",
-	"tuto_storage_texture",
-	"min_data",
-	"tuto_vertex_compute"
-}
+project("tp1")
+    language "C++"
+    kind "ConsoleApp"
+    targetdir "bin"
+    files ( gkit_files )
+    files { gkit_dir .. "/tps/tp1/quaternius.cpp",
+            gkit_dir .. "/tps/tp1/tp1.cpp"
+    }
 
-for i, name in ipairs(tutos) do
-	project(name)
-		language "C++"
-		kind "ConsoleApp"
-		targetdir "bin"
-		files ( gkit_files )
-		files { gkit_dir .. "/tutos/" .. name..'.cpp' }
-end
-
---~  -- description des tutos serie 2
---~  tutos2 = {
---~ 	"tuto1",
---~ 	"tuto2"
---~ }
-
---~ for i, name in ipairs(tutos2) do
---~ 	project(name .. "_serie2")
---~ 		language "C++"
---~ 		kind "ConsoleApp"
---~ 		targetdir "bin"
---~ 		files ( gkit_files )
---~ 		files { gkit_dir .. "/tutos/serie2/" .. name..'.cpp' }
---~ end
-
-
-project("mesh_viewer")
-	language "C++"
-	kind "ConsoleApp"
-	targetdir "bin"
-	files ( gkit_files )
-	files { gkit_dir .. "/tutos/mesh_viewer.cpp"}
-	files { gkit_dir .. "/tutos/mesh_buffer.cpp"}
-	files { gkit_dir .. "/tutos/mesh_buffer.h"}
-	files { gkit_dir .. "/tutos/mesh_data.cpp"}
-	files { gkit_dir .. "/tutos/mesh_data.h"}
-	files { gkit_dir .. "/tutos/material_data.cpp"}
-	files { gkit_dir .. "/tutos/material_data.h"}
-
-
--- description des tutos openGL avances / M2
-tutosM2 = {
-	"tuto_time",
-	"tuto_mdi",
-	"tuto_mdi_count",
-	"tuto_stream",
-
-	"tuto_is",
-	"tuto_raytrace_fragment",
-	"tuto_ao"
-}
-
-for i, name in ipairs(tutosM2) do
-	project(name)
-		language "C++"
-		kind "ConsoleApp"
-		targetdir "bin"
-		files ( gkit_files )
-		files { gkit_dir .. "/tutos/M2/" .. name..'.cpp' }
-end
-
-projetsM2 = {
-	"tp0"
-}
-
-for i, name in ipairs(projetsM2) do
-	project(name)
-		language "C++"
-		kind "ConsoleApp"
-		targetdir "bin"
-		files ( gkit_files )
-		files { gkit_dir .. "/tps/" .. name.. "/" .. name..'.cpp' }
-end
+project("tp2")
+    language "C++"
+    kind "ConsoleApp"
+    targetdir "bin"
+    files ( gkit_files )
+    files { gkit_dir .. "/tps/tp2/tp2.cpp" }
