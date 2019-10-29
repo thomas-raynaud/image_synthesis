@@ -27,7 +27,7 @@ flat out int material_idx;
 void main()
 {
     vec3 vertex_position = position1 * (1.0 - time) + position2 * time;
-    vertex_normal = mat3(normalMatrix) * ((normal1 * (1.0 - time)) + (normal2 * time));
+    vertex_normal = normal1 * (1.0 - time) + normal2 * time;
     material_idx = material_idx_v;
 
     vec4 p = mvpMatrix * vec4(vertex_position, 1);
@@ -36,6 +36,7 @@ void main()
     gl_Position = p;
 
     shadowmap_coord = vec3(sourceMatrix * vec4(vertex_position + 0.02 * vertex_normal, 1));
+    vertex_normal = mat3(normalMatrix) * vertex_normal;
 }
 
 #endif

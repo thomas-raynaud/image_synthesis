@@ -23,8 +23,8 @@ public:
     
     // creation des objets de l'application
     int init( ) {
-        m_framebuffer_width  = 1024;
-        m_framebuffer_height = 1024;
+        m_framebuffer_width  = 1024 * 2;
+        m_framebuffer_height = 1024 * 2;
 
         glGenTextures(1, &m_zbuffer);
         glBindTexture(GL_TEXTURE_2D, m_zbuffer); // sélectionner la texture
@@ -49,12 +49,12 @@ public:
         // nettoyage
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 
-        m_camera.lookat(Point(0, 2, 5), Point(0, 2, 0));
-        m_light_pos = Point(10, 10, 5);
-        m_obj_pos = Point(3, 4, 1);
+        m_camera.lookat(Point(0, 10, -7), Point(0, 0, 7));
+        m_camera.rotation(-90, 0);
+        m_light_pos = Point(10, 10, 0);
 
         m_sourceView = Lookat(m_light_pos, Point(0, 0, 0), Vector(0, 1, 0));
-        m_sourceProjection = Ortho(-6, 6, -6, 6, 0.001, 1000);
+        m_sourceProjection = Ortho(-25, 25, -25, 25, 0.1, 1000);
         Mesh mesh;
 
         glGenBuffers(1, &m_vertex_buffer);
@@ -66,8 +66,7 @@ public:
         // Objets de la scene.
         glGenVertexArrays(1, &m_vao_obj);
         glBindVertexArray(m_vao_obj);
-        //mesh = read_mesh("data/cube.obj");
-        mesh = create_mesh(2, 2, 2);
+        mesh = create_mesh(Point(0, -0.5, 0), 50, 1, 50);
         m_vertex_count_obj = mesh.vertex_count();
         glBindBuffer(GL_ARRAY_BUFFER, m_vertex_buffer_obj);
         glBufferData(GL_ARRAY_BUFFER, m_vertex_count_obj * sizeof(vec3) * 2, nullptr, GL_STATIC_DRAW);
@@ -221,10 +220,8 @@ public:
         glEnableVertexAttribArray(3);
 
         // Matrices
-        Transform projection = m_camera.projection(window_width(), window_height(), 45);
-        Transform model = Identity();
-        Transform mvp = projection * m_camera.view() * model;
-        Transform mvpShadowMap = m_sourceProjection * m_sourceView * model;
+        Transform projection = Perspective(45, (float)window_width() / (float)window_height(), 0.01, 1000);
+        Transform model_quaternius = RotationY(-gt / 36) * Translation(2, 0, 0);
 
 
         // SHADOW MAP
@@ -236,7 +233,7 @@ public:
         glBindVertexArray(m_vao);
         glUseProgram(m_program_shadowmap);
 
-        program_uniform(m_program_shadowmap, "mvpMatrix", mvpShadowMap);
+        program_uniform(m_program_shadowmap, "mvpMatrix", m_sourceProjection * m_sourceView * model_quaternius);
         program_uniform(m_program_shadowmap, "time", dt);
         program_uniform(m_program_shadowmap, "useInterpolation", 1);
 
@@ -244,7 +241,7 @@ public:
 
         // Dessiner la scène
         glBindVertexArray(m_vao_obj);
-        program_uniform(m_program_shadowmap, "mvpMatrix", m_sourceProjection * m_sourceView * Translation(Vector(m_obj_pos)));
+        program_uniform(m_program_shadowmap, "mvpMatrix", m_sourceProjection * m_sourceView * Identity());
         program_uniform(m_program_shadowmap, "useInterpolation", 0);
 
         glDrawArrays(GL_TRIANGLES, 0, m_vertex_count_obj);
@@ -260,11 +257,11 @@ public:
         glBindVertexArray(m_vao);
         glUseProgram(m_program);
 
-        program_uniform(m_program, "mvpMatrix", mvp);
-        program_uniform(m_program, "normalMatrix", model.normal());
+        program_uniform(m_program, "mvpMatrix", projection * m_camera.view() * model_quaternius);
+        program_uniform(m_program, "normalMatrix", model_quaternius.normal());
         program_uniform(m_program, "view_pos", m_camera.position());
         program_uniform(m_program, "light_pos", vec3(m_light_pos.x, m_light_pos.y, m_light_pos.z));
-        program_uniform(m_program, "sourceMatrix", Viewport(1, 1) * mvpShadowMap);
+        program_uniform(m_program, "sourceMatrix", Viewport(1, 1) * m_sourceProjection * m_sourceView * model_quaternius);
         program_uniform(m_program, "time", dt);
 
         program_use_texture(m_program, "shadowmap", 0, m_zbuffer, 0);
@@ -285,11 +282,12 @@ public:
         glBindVertexArray(m_vao_obj);
         glUseProgram(m_program_object);
 
-        model = Translation(Vector(m_obj_pos));
-
-        program_uniform(m_program_object, "mvpMatrix", projection * m_camera.view() * model);
+        program_uniform(m_program_object, "mvpMatrix", projection * m_camera.view() * Identity());
         program_uniform(m_program_object, "light_pos", vec3(m_light_pos.x, m_light_pos.y, m_light_pos.z));
-        program_uniform(m_program_object, "normalMatrix", model.normal());
+        program_uniform(m_program_object, "normalMatrix", Identity().normal());
+        program_uniform(m_program_object, "sourceMatrix", Viewport(1, 1) * m_sourceProjection * m_sourceView);
+
+        program_use_texture(m_program_object, "shadowmap", 0, m_zbuffer, 0);
         glDrawArrays(GL_TRIANGLES, 0, m_vertex_count_obj);
         
 
@@ -303,7 +301,6 @@ protected:
     Transform m_sourceProjection;
     Orbiter m_camera;
     Point m_light_pos;
-    Point m_obj_pos;
 
     GLuint m_vao;
     GLuint m_vao_obj;
