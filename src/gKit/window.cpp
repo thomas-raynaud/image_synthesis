@@ -296,10 +296,10 @@ void GLAPIENTRY debug( GLenum source, GLenum type, unsigned int id, GLenum sever
 
     if(severity == GL_DEBUG_SEVERITY_HIGH)
         printf("[openGL error]\n%s\n", message);
-    else if(severity == GL_DEBUG_SEVERITY_MEDIUM)
+    /*else if(severity == GL_DEBUG_SEVERITY_MEDIUM)
         printf("[openGL warning]\n%s\n", message);
     else
-        printf("[openGL message]\n%s\n", message);
+        printf("[openGL message]\n%s\n", message);*/
 }
 #endif
 #endif

@@ -299,6 +299,7 @@ MaterialLib read_materials( const char *filename )
         {
             if(sscanf(line, "newmtl %[^\r\n]", tmp) == 1)
             {
+                std::cout << tmp << std::endl;
                 materials.names.push_back( tmp );
                 materials.data.push_back( Material() );
                 material= &materials.data.back();
@@ -315,8 +316,12 @@ MaterialLib read_materials( const char *filename )
                 material->diffuse= Color(r, g, b);
             else if(sscanf(line, "Ks %f %f %f", &r, &g, &b) == 3)
                 material->specular= Color(r, g, b);
-            else if(sscanf(line, "Ke %f %f %f", &r, &g, &b) == 3)
-                material->emission= Color(r, g, b);
+            else if(sscanf(line, "Ke %f %f %f", &r, &g, &b) == 3) {
+                if (materials.names[materials.names.size() - 1] == "sp_svod_kapitel")
+                    material->emission= Color(1, 1, 1);
+                else
+                    material->emission= Color(r, g, b);
+            }
         }
         
         else if(line[0] == 'N')

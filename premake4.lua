@@ -214,7 +214,10 @@ for i, name in ipairs(tutosM2) do
 end
 
 projetsM2 = {
-	"tp0"
+	"tp0",
+	"tp1",
+	"tp2",
+	"tp3"
 }
 
 for i, name in ipairs(projetsM2) do
