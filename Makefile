@@ -6,7 +6,7 @@ ifndef config
 endif
 export config
 
-PROJECTS := shader_kit image_viewer directions tuto1 tuto2 tuto3 tuto4 tuto5 tuto6 tuto7 tuto7_camera tuto7_scene tuto8 tuto9 tuto9_texture1 tuto9_textures tuto9_buffers tuto10 tuto_transform tuto_pad tuto1GL tuto2GL tuto2GL_app tuto3GL tuto3GL_reflect tuto4GL tuto4GL_normals tuto5GL tuto5GL_sampler tuto5GL_samplers tuto5GL_multi tuto6GL tuto6GL_buffer tuto_framebuffer tuto_uniform_buffers tuto_storage tuto_storage2 tuto_storage_buffer tuto_storage_texture min_data tuto_vertex_compute mesh_viewer tuto_time tuto_mdi tuto_mdi_count tuto_stream tuto_is tuto_raytrace_fragment tuto_ao tp0 tp1 tp2 tp3
+PROJECTS := shader_kit image_viewer directions tuto1 tuto2 tuto3 tuto4 tuto5 tuto6 tuto7 tuto7_camera tuto7_scene tuto8 tuto9 tuto9_texture1 tuto9_textures tuto9_buffers tuto10 tuto_transform tuto_pad tuto1GL tuto2GL tuto2GL_app tuto3GL tuto3GL_reflect tuto4GL tuto4GL_normals tuto5GL tuto5GL_sampler tuto5GL_samplers tuto5GL_multi tuto6GL tuto6GL_buffer tuto_framebuffer tuto_uniform_buffers tuto_storage tuto_storage2 tuto_storage_buffer tuto_storage_texture min_data tuto_vertex_compute mesh_viewer tuto_time tuto_mdi tuto_mdi_count tuto_stream tuto_is tuto_raytrace_fragment tuto_ao tp1 tp0 tp2 tp3
 
 .PHONY: all clean help $(PROJECTS)
 
@@ -208,13 +208,13 @@ tuto_ao:
 	@echo "==== Building tuto_ao ($(config)) ===="
 	@${MAKE} --no-print-directory -C . -f tuto_ao.make
 
-tp0: 
-	@echo "==== Building tp0 ($(config)) ===="
-	@${MAKE} --no-print-directory -C . -f tp0.make
-
 tp1: 
 	@echo "==== Building tp1 ($(config)) ===="
 	@${MAKE} --no-print-directory -C . -f tp1.make
+
+tp0: 
+	@echo "==== Building tp0 ($(config)) ===="
+	@${MAKE} --no-print-directory -C . -f tp0.make
 
 tp2: 
 	@echo "==== Building tp2 ($(config)) ===="
@@ -274,8 +274,8 @@ clean:
 	@${MAKE} --no-print-directory -C . -f tuto_is.make clean
 	@${MAKE} --no-print-directory -C . -f tuto_raytrace_fragment.make clean
 	@${MAKE} --no-print-directory -C . -f tuto_ao.make clean
-	@${MAKE} --no-print-directory -C . -f tp0.make clean
 	@${MAKE} --no-print-directory -C . -f tp1.make clean
+	@${MAKE} --no-print-directory -C . -f tp0.make clean
 	@${MAKE} --no-print-directory -C . -f tp2.make clean
 	@${MAKE} --no-print-directory -C . -f tp3.make clean
 
@@ -340,8 +340,8 @@ help:
 	@echo "   tuto_is"
 	@echo "   tuto_raytrace_fragment"
 	@echo "   tuto_ao"
-	@echo "   tp0"
 	@echo "   tp1"
+	@echo "   tp0"
 	@echo "   tp2"
 	@echo "   tp3"
 	@echo ""

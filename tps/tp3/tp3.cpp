@@ -17,7 +17,6 @@
 
 #include "orbiter.h"
 
-
 // cf tuto_storage
 namespace glsl 
 {
@@ -66,13 +65,118 @@ namespace glsl
     typedef gvec4<int> bvec4;
 }
 
+struct triangle {
+    glsl::vec3 a;
+    glsl::vec3 ab;
+    glsl::vec3 ac;
+};
+
+struct Node {
+    Point bmin;
+    Point bmax;
+    int g;
+    int d;
+};
+
+Point getPoint(glsl::vec3 p) {
+    return Point(p.x, p.y, p.z);
+};
+
+Point centroid_triangle(const triangle &t) {
+    Point a, b, c;
+    a = getPoint(t.a);
+    b = a + getPoint(t.ab);
+    c = a + getPoint(t.ac);
+    return Point(
+            (a(0) + b(0) + c(0)) / 3.0f,
+            (a(1) + b(1) + c(1)) / 3.0f,
+            (a(2) + b(2) + c(2)) / 3.0f
+    );
+}
+
+// Trouve les points min et max de la boite englobante des triangles d'indice entre begin et end
+void bounds(std::vector<triangle> & triangles, const int begin, const int end, Point & bmin, Point & bmax) {
+    Point a, b, c;
+    bmin = getPoint(triangles[0].a);
+    bmax = getPoint(triangles[0].a);
+    for (int i = begin; i < end; ++i) {
+        a = getPoint(triangles[i].a);
+        b = a + getPoint(triangles[i].ab);
+        c = a + getPoint(triangles[i].ac);
+        bmin = min(bmin, min(a, min(b, c)));
+        bmax = max(bmax, max(a, max(b, c)));
+    }
+}
+
+// boite englobante des centres 
+void centroid_bounds(std::vector<triangle> & triangles, int begin, int end, Point & cmin, Point & cmax) {
+    cmin = centroid_triangle(triangles[0]);
+    cmax = centroid_triangle(triangles[0]);
+    for (int i = begin; i < end; ++i) {
+        cmin = min(cmin, centroid_triangle(triangles[i]));
+        cmax = max(cmax, centroid_triangle(triangles[i]));
+    }
+}
+
+// Retourne l'axe où cmin et cmax sont les plus éloignés 
+int bounds_max(Point cmin, Point cmax) {
+    Point center = Point(
+        cmax.x - cmin.x,
+        cmax.y - cmin.y,
+        cmax.z - cmin.z
+    );
+    int axis = 0;
+    if (center(axis) > center.y) axis = 1;
+    if (center(axis) > center.z) axis = 2;
+    return axis;
+}
+
+// Foncteur
+struct centroid_less {
+    centroid_less(int _axis, float _center_box_axis): axis(_axis), center_box_axis(_center_box_axis) { }
+    bool operator() (triangle &x) {
+        return centroid_triangle(x)(axis) < center_box_axis;
+    }
+    int axis;
+    float center_box_axis;
+};
+
+int build_node_centroids(std::vector<triangle> & triangles, std::vector<Node> nodes, const int begin, const int end) {
+    Point bmin, bmax;
+    bounds(triangles, begin, end, bmin, bmax); //  englobant
+    Point cmin, cmax;
+    if(end - begin < 2) { // 1 triangle, construire une feuille
+        nodes.push_back( {bmin , bmax , -begin , -end} );
+        return int(nodes.size()) -1;
+    }
+    centroid_bounds(triangles, begin, end, cmin, cmax); // englobant des centres
+    
+    int axis = bounds_max(cmin, cmax);
+    float center_box_axis = (cmax(axis) + cmin(axis)) / 2.0f;
+    int m = std::distance(triangles.data(), // repartir les triangles
+                std::partition(
+                    triangles.data() + begin, triangles.data() + end, centroid_less(axis, center_box_axis)
+                )
+        );
+    if (begin == m) {
+        m = begin + 1;
+    } else if (end == m) {
+        m = end - 1;
+    }
+    int left = build_node_centroids(triangles, nodes, begin, m); //  construire  les  fils  du  noeud
+    int right = build_node_centroids(triangles, nodes, m, end);
+    
+    //  construire  le  noeud
+    nodes.push_back( {bmin, bmax, left, right} );
+    return int(nodes.size()) - 1;
+}
 
 struct RT : public AppTime
 {
     // constructeur : donner les dimensions de l'image, et eventuellement la version d'openGL.
     RT( const char *filename ) : AppTime(1024, 640) 
     {
-        m_mesh= read_mesh(filename);
+        m_mesh = read_mesh(filename);
     }
     
     int init( )
@@ -98,50 +202,74 @@ struct RT : public AppTime
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
-        // transfere les donnees dans la texture, 4 float par texel
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, window_width(), window_height(), 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+        glBindTexture(GL_TEXTURE_2D, 0);
+
+        // Texture de bruit
+        glGenTextures(1, &m_texture_bruit);
+        glBindTexture(GL_TEXTURE_2D, m_texture_bruit);
+
+        // fixe les parametres de filtrage par defaut
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_R32UI, window_width(), window_height(), 0, GL_RED_INTEGER, GL_UNSIGNED_INT, nullptr);
         glBindTexture(GL_TEXTURE_2D, 0);
 
         // Triangles
         // storage buffers
-        /*glGenBuffers(1, &m_raybuffer);
-        glBindBuffer(GL_SHADER_STORAGE_BUFFER, m_raybuffer);
-        glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(float) * window_width() * window_height(), nullptr, GL_STREAM_COPY);*/
-        glGenBuffers(1, &m_buffer);
-        glBindBuffer(GL_UNIFORM_BUFFER, m_buffer);
-        
-        struct triangle 
-        {
-            glsl::vec3 a;
-            glsl::vec3 ab;
-            glsl::vec3 ac;
-        };
-        
-        std::vector<triangle> data;
-        data.reserve(m_mesh.triangle_count());
+        glGenBuffers(1, &m_triangle_buffer);
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, m_triangle_buffer);
+
+        std::vector<triangle> dataTriangle;
+        dataTriangle.reserve(m_mesh.triangle_count());
         for(int i= 0; i < m_mesh.triangle_count(); i++)
         {
             TriangleData t= m_mesh.triangle(i);
-            data.push_back( { Point(t.a), Point(t.b) - Point(t.a), Point(t.c) - Point(t.a) } );
+            dataTriangle.push_back( { Point(t.a), Point(t.b) - Point(t.a), Point(t.c) - Point(t.a) } );
         }
         
         // alloue le buffer
         // alloue au moins 1024 triangles, cf le shader
-        if(data.size() < 1024)
-            data.resize(1024);
-        glBufferData(GL_UNIFORM_BUFFER, data.size() * sizeof(triangle), data.data(), GL_STATIC_READ);
+        if(dataTriangle.size() < 1024)
+            dataTriangle.resize(1024);
+        glBufferData(GL_SHADER_STORAGE_BUFFER, dataTriangle.size() * sizeof(triangle), dataTriangle.data(), GL_STATIC_READ);
 
-        m_compute_program= read_program("tps/tp3/trace_cp.glsl");
+        // Spheres
+        glGenBuffers(1, &m_sphere_buffer);
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, m_sphere_buffer);
 
-        program_print_errors(m_compute_program);
+        std::vector<glsl::vec4> dataSphere;
+        dataSphere.reserve(2);
+        dataSphere.push_back({vec4(-0.7, 0.15, 0.4, 0.15)});
+        dataSphere.push_back({vec4(-0.3, 1.29, -0.2, 0.08)});
+        
+        // alloue le buffer
+        // alloue au moins 10 spheres, cf le shader
+        if(dataSphere.size() < 10)
+            dataSphere.resize(10);
+        glBufferData(GL_SHADER_STORAGE_BUFFER, dataSphere.size() * sizeof(glsl::vec4), dataSphere.data(), GL_STATIC_READ);
+
+        m_program = read_program("tps/tp3/trace_cp.glsl");
+
+        program_print_errors(m_program);
 
         // Framebuffer
         glGenFramebuffers(1, &m_framebuffer);
 
-        // associe l'uniform buffer a l'entree 0
-        GLint index= glGetUniformBlockIndex(m_compute_program, "triangleData");
-        glUniformBlockBinding(m_compute_program, index, 0);
+        glViewport(0, 0, window_width(), window_height());
         
+        // On bind la texture
+        glFramebufferTexture2D(GL_READ_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_texture, 0);
+
+        // Créer l'arbre
+        std::vector<Node> nodes;
+        int  root = build_node_centroids(dataTriangle, nodes, 0,  dataTriangle.size()); 
+
+
         return 0;
     }
     
@@ -179,22 +307,14 @@ struct RT : public AppTime
         Transform p = m_camera.projection(window_width(), window_height(), 45);
         Transform mvp = p * v * m;
 
-        glUseProgram(m_compute_program);
-        program_uniform(m_compute_program, "mvpInvMatrix", mvp.inverse());
-        program_uniform(m_compute_program, "invViewport", Viewport(window_width(), window_height()).inverse());
-        /*Transform tmp = Viewport(window_width(), window_height()).inverse();
+        glUseProgram(m_program);
+        program_uniform(m_program, "mvpInvMatrix", mvp.inverse());
+        program_uniform(m_program, "invViewport", Viewport(window_width(), window_height()).inverse());
+        program_uniform(m_program, "triangle_count", m_mesh.triangle_count());
+        program_uniform(m_program, "sphere_count", 2);
 
-        Vector p1 = tmp(Vector(0, 0, 0)) - Vector(1, 1, 1);
-        Vector p2 = tmp(Vector(window_width(), window_height(), 0)) - Vector(1, 1, 1);
-        std::cout << p1 << std::endl;
-        std::cout << p2 << std::endl;
-        p1 = mvp.inverse()(p1);
-        p2 = mvp.inverse()(p2);
-        std::cout << p1 << std::endl;
-        std::cout << p2 << std::endl << std::endl;*/
-        program_uniform(m_compute_program, "triangle_count", m_mesh.triangle_count());
-
-        glBindBufferBase(GL_UNIFORM_BUFFER, 0, m_buffer);
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, m_triangle_buffer);
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, m_sphere_buffer);
 
         glBindImageTexture(0, m_texture, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA8);
 
@@ -207,29 +327,25 @@ struct RT : public AppTime
 
         glDispatchCompute(nt, mt, 1);
 
-        // etape 2 : synchronisation
+        // synchronisation
         glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
-
-        //glBindTexture(GL_TEXTURE_2D, m_texture);
 
         glBindFramebuffer(GL_READ_FRAMEBUFFER, m_framebuffer);
         glViewport(0, 0, window_width(), window_height());
-        
-        glFramebufferTexture2D(GL_READ_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
-                            GL_TEXTURE_2D, m_texture, 0);
 
+        glFramebufferTexture2D(GL_READ_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
+                    GL_TEXTURE_2D, m_texture, 0);
+        
+
+        // On copie la texture dans le framebuffer par défaut
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
         glBlitFramebuffer(0, 0, window_width(), window_height(),
                         0, 0, window_width(), window_height(),
                         GL_COLOR_BUFFER_BIT, GL_LINEAR);
         
-        //glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
-		//glDrawArrays(GL_TRIANGLES, 0, 3);
-        
-        /* Reset image binding. */
-		glBindImageTexture(0, 0, 0, false, 0, GL_READ_WRITE, GL_RGBA8UI);
+        // Reset image binding.
+		//glBindImageTexture(0, 0, 0, false, 0, GL_READ_WRITE, GL_RGBA8UI);
         
         return 1;
     }
@@ -238,17 +354,18 @@ protected:
     Mesh m_mesh;
     Orbiter m_camera;
 
-    GLuint m_compute_program;
+    GLuint m_program;
     GLuint m_vao;
-    GLuint m_buffer;
+    GLuint m_triangle_buffer;
+    GLuint m_sphere_buffer;
     GLuint m_framebuffer;
 
     GLuint m_texture;
+    GLuint m_texture_bruit;
 };
 
     
-int main( int argc, char **argv )
-{
+int main( int argc, char **argv ) {
     const char *filename= "tps/tp3/cornell.obj";
     if(argc > 1)
         filename= argv[1];

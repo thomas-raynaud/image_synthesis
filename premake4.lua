@@ -215,10 +215,18 @@ end
 
 projetsM2 = {
 	"tp0",
-	"tp1",
 	"tp2",
 	"tp3"
 }
+
+project("tp1")
+	language "C++"
+	kind "ConsoleApp"
+	targetdir "bin"
+	files ( gkit_files )
+	files { gkit_dir .. "/tps/tp1/tp1.cpp" }
+	files { gkit_dir .. "/tps/tp1/quaternius.cpp" }
+	files { gkit_dir .. "/tps/tp1/quaternius.h" }
 
 for i, name in ipairs(projetsM2) do
 	project(name)
