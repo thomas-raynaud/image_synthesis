@@ -13,16 +13,29 @@ struct Triangle {
 	vec3 ac;	// arete 2
 };
 
+struct Node {
+	vec3 bmin;
+    int fils;
+    vec3 bmax;
+    int next;
+};
+
 // storage buffer 0
 layout(binding = 0) readonly buffer triangleData 
 {
     Triangle triangles[];
 };
 
-// storage buffer 1
-layout(binding = 1) readonly buffer sphereData 
+// storage buffer 0
+layout(binding = 1) readonly buffer bvhData 
 {
-    vec4 spheres[10];
+    Node nodes[];
+};
+
+// storage buffer 2
+layout(binding = 2) readonly buffer sphereData 
+{
+    vec4 spheres[];
 };
 
 uniform mat4 mvpInvMatrix;
@@ -32,6 +45,21 @@ uniform int sphere_count;
 layout(binding = 0, rgba8) uniform image2D image;
 //layout(binding = 1, uint) uniform uimage2D image_bruit;
 
+bool intersectBox(const vec3 o, const vec3 d, const vec3 pmin, const vec3 pmax, const float tmax)
+{
+    vec3 invd = vec3(1.0 / d.x, 1.0 / d.y, 1.0 / d.z);
+    vec3 rmin= pmin;
+    vec3 rmax= pmax;
+    if(d.x < 0) { float tmp = rmin.x; rmin.x = rmax.x; rmax.x = tmp; }
+    if(d.y < 0) { float tmp = rmin.y; rmin.y = rmax.y; rmax.y = tmp; }
+    if(d.z < 0) { float tmp = rmin.z; rmin.z = rmax.z; rmax.z = tmp; }
+    vec3 dmin= (rmin - o) * invd;
+    vec3 dmax= (rmax - o) * invd;
+    
+    float rtmin= max(dmin.z, max(dmin.y, max(dmin.x, float(0))));
+    float rtmax= min(dmax.z, min(dmax.y, min(dmax.x, tmax)));
+    return (rtmin <= rtmax);
+}
 
 bool intersectTriangle(const Triangle triangle, const vec3 o, const vec3 d, const float tmax, out float rt, out vec3 n)
 {
@@ -173,14 +201,36 @@ void main() {
     float t, cos_theta;
     vec3 p;
 
-    for(int i= 0; i < triangle_count; i++) {
+    // Intersection avec le BVH
+    int n_id = 0; // racine
+    int id_triangle;
+    while (n_id >= 0) {
+        if (nodes[n_id].fils >= 0) {        // noeud
+            if (intersectBox(o, d, nodes[n_id].bmin, nodes[n_id].bmax, hit))
+                n_id = nodes[n_id].fils;
+            else
+                n_id = nodes[n_id].next;
+        } else {                            // feuille
+            id_triangle = abs(nodes[n_id].fils) - 1;
+            if (intersectTriangle(triangles[id_triangle], o, d, hit, t, n2)) {
+                hit = t;
+                hitid = id_triangle;
+                n = n2;
+            }
+            n_id = nodes[n_id].next;
+        }
+    }
+
+    // Intersection avec les triangles
+    /*for(int i= 0; i < triangle_count; i++) {
         if(intersectTriangle(triangles[i], o, d, hit, t, n2)) {
             hit= t;
             hitid= i;
             n = n2;
         }
-    }
+    }*/
 
+    // Intersection avec les sphères
     for(int i= 0; i < sphere_count; i++) {
         if(intersectSphere(spheres[i], o, d, hit, t, n2)) {
             hit= t;

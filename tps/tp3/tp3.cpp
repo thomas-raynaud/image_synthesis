@@ -2,6 +2,7 @@
 #include <cfloat>
 #include <cmath>
 #include <algorithm>
+#include <stack>
 
 #include "app_time.h"
 
@@ -72,9 +73,9 @@ struct triangle {
 };
 
 struct Node {
-    Point bmin;
-    Point bmax;
+    vec3 bmin;
     int g;
+    vec3 bmax;
     int d;
 };
 
@@ -97,21 +98,24 @@ Point centroid_triangle(const triangle &t) {
 // Trouve les points min et max de la boite englobante des triangles d'indice entre begin et end
 void bounds(std::vector<triangle> & triangles, const int begin, const int end, Point & bmin, Point & bmax) {
     Point a, b, c;
-    bmin = getPoint(triangles[0].a);
-    bmax = getPoint(triangles[0].a);
+    bmin = getPoint(triangles[begin].a);
+    bmax = getPoint(triangles[begin].a);
+    //std::cout << begin << " " << end << std::endl;
     for (int i = begin; i < end; ++i) {
         a = getPoint(triangles[i].a);
         b = a + getPoint(triangles[i].ab);
         c = a + getPoint(triangles[i].ac);
+        //std::cout << a << " " << b << " " << c << std::endl;
         bmin = min(bmin, min(a, min(b, c)));
         bmax = max(bmax, max(a, max(b, c)));
     }
+    //std::cout << triangles.size() << " " << begin << " " << end << std::endl;
 }
 
 // boite englobante des centres 
 void centroid_bounds(std::vector<triangle> & triangles, int begin, int end, Point & cmin, Point & cmax) {
-    cmin = centroid_triangle(triangles[0]);
-    cmax = centroid_triangle(triangles[0]);
+    cmin = centroid_triangle(triangles[begin]);
+    cmax = centroid_triangle(triangles[begin]);
     for (int i = begin; i < end; ++i) {
         cmin = min(cmin, centroid_triangle(triangles[i]));
         cmax = max(cmax, centroid_triangle(triangles[i]));
@@ -141,12 +145,12 @@ struct centroid_less {
     float center_box_axis;
 };
 
-int build_node_centroids(std::vector<triangle> & triangles, std::vector<Node> nodes, const int begin, const int end) {
+int build_node_centroids(std::vector<triangle> & triangles, std::vector<Node> & nodes, const int begin, const int end) {
     Point bmin, bmax;
     bounds(triangles, begin, end, bmin, bmax); //  englobant
     Point cmin, cmax;
     if(end - begin < 2) { // 1 triangle, construire une feuille
-        nodes.push_back( {bmin , bmax , -begin , -end} );
+        nodes.push_back( {(vec3)bmin, -(begin + 1), (vec3)bmax, -(end + 1)} );
         return int(nodes.size()) -1;
     }
     centroid_bounds(triangles, begin, end, cmin, cmax); // englobant des centres
@@ -163,12 +167,59 @@ int build_node_centroids(std::vector<triangle> & triangles, std::vector<Node> no
     } else if (end == m) {
         m = end - 1;
     }
-    int left = build_node_centroids(triangles, nodes, begin, m); //  construire  les  fils  du  noeud
-    int right = build_node_centroids(triangles, nodes, m, end);
+
+    // construire le noeud
+    int left = -1;
+    int right = -1;
+    int node_id = nodes.size();
+    nodes.push_back( {(vec3)bmin, left, (vec3)bmax, right} );
+
+    left = build_node_centroids(triangles, nodes, begin, m); //  construire  les  fils  du  noeud
+    right = build_node_centroids(triangles, nodes, m, end);
+
+    nodes[node_id].g = left;
+    nodes[node_id].d = right;
     
-    //  construire  le  noeud
-    nodes.push_back( {bmin, bmax, left, right} );
-    return int(nodes.size()) - 1;
+    return node_id;
+}
+
+void build_bvh_cousu(std::vector<Node> & nodes, std::vector<Node> & nodesCousus, int root) {
+    // fils gauche = fils
+    // fils droit = successeur
+    // Racine
+    std::stack<int> successeurs;
+    int fils = nodes[root].g;
+    int droite = nodes[root].d;
+    int next = -1;
+    nodesCousus.push_back( {nodes[root].bmin, fils, nodes[root].bmax, next} );
+    next = droite;
+    successeurs.push(droite);
+    int current_node = fils;
+    while (current_node != -1) {
+        fils = nodes[current_node].g;
+        droite = nodes[current_node].d;
+        nodesCousus.push_back( {nodes[current_node].bmin, fils, nodes[current_node].bmax, next} );
+        next = droite;
+        
+        if (next >= 0) {
+            successeurs.push(next);
+            current_node = fils;
+        } else {
+            if (successeurs.empty()) {
+                current_node = -1;
+            }
+            else {
+                next = successeurs.top();
+                successeurs.pop();
+                current_node = next;
+                if (successeurs.empty())
+                    next = -1;
+                else
+                    next = successeurs.top();
+            }
+            
+        }
+    }
 }
 
 struct RT : public AppTime
@@ -234,13 +285,34 @@ struct RT : public AppTime
         
         // alloue le buffer
         // alloue au moins 1024 triangles, cf le shader
-        if(dataTriangle.size() < 1024)
-            dataTriangle.resize(1024);
+        //if(dataTriangle.size() < 1024)
+        //    dataTriangle.resize(1024);
         glBufferData(GL_SHADER_STORAGE_BUFFER, dataTriangle.size() * sizeof(triangle), dataTriangle.data(), GL_STATIC_READ);
+
+        // BVH des triangles
+        std::vector<Node> bvh, bvh_cousu;
+        int root = build_node_centroids(dataTriangle, bvh, 0, dataTriangle.size());
+        build_bvh_cousu(bvh, bvh_cousu, root);
+
+        for (uint i = 0; i < bvh_cousu.size(); ++i) {
+            std::string fils;
+            if (bvh_cousu[i].g < 0) fils = "(" + std::to_string(abs(bvh_cousu[i].g) - 1) + ")";
+            else fils = " " + std::to_string(bvh_cousu[i].g) + " ";
+            std::cout << i << " - F = " << fils << ", N = " << bvh_cousu[i].d << std::endl;
+            Point bmin = getPoint(bvh_cousu[i].bmin);
+            Point bmax = getPoint(bvh_cousu[i].bmax);
+            std::cout << bmin << " - " << bmax << std::endl;
+            std::cout << std::endl;
+        }
+
+        glGenBuffers(1, &m_nodes_buffer);
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, m_nodes_buffer);
+        
+        glBufferData(GL_SHADER_STORAGE_BUFFER, bvh_cousu.size() * sizeof(Node), bvh_cousu.data(), GL_STATIC_READ);
 
         // Spheres
         glGenBuffers(1, &m_sphere_buffer);
-        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, m_sphere_buffer);
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, m_sphere_buffer);
 
         std::vector<glsl::vec4> dataSphere;
         dataSphere.reserve(2);
@@ -249,8 +321,8 @@ struct RT : public AppTime
         
         // alloue le buffer
         // alloue au moins 10 spheres, cf le shader
-        if(dataSphere.size() < 10)
-            dataSphere.resize(10);
+        //if(dataSphere.size() < 10)
+        //    dataSphere.resize(10);
         glBufferData(GL_SHADER_STORAGE_BUFFER, dataSphere.size() * sizeof(glsl::vec4), dataSphere.data(), GL_STATIC_READ);
 
         m_program = read_program("tps/tp3/trace_cp.glsl");
@@ -264,11 +336,6 @@ struct RT : public AppTime
         
         // On bind la texture
         glFramebufferTexture2D(GL_READ_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_texture, 0);
-
-        // Créer l'arbre
-        std::vector<Node> nodes;
-        int  root = build_node_centroids(dataTriangle, nodes, 0,  dataTriangle.size()); 
-
 
         return 0;
     }
@@ -314,7 +381,8 @@ struct RT : public AppTime
         program_uniform(m_program, "sphere_count", 2);
 
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, m_triangle_buffer);
-        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, m_sphere_buffer);
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, m_nodes_buffer);
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, m_sphere_buffer);
 
         glBindImageTexture(0, m_texture, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA8);
 
@@ -357,6 +425,7 @@ protected:
     GLuint m_program;
     GLuint m_vao;
     GLuint m_triangle_buffer;
+    GLuint m_nodes_buffer; // BVH cousu
     GLuint m_sphere_buffer;
     GLuint m_framebuffer;
 
