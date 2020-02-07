@@ -109,7 +109,6 @@ void bounds(std::vector<triangle> & triangles, const int begin, const int end, P
         bmin = min(bmin, min(a, min(b, c)));
         bmax = max(bmax, max(a, max(b, c)));
     }
-    //std::cout << triangles.size() << " " << begin << " " << end << std::endl;
 }
 
 // boite englobante des centres 
@@ -148,11 +147,11 @@ struct centroid_less {
 int build_node_centroids(std::vector<triangle> & triangles, std::vector<Node> & nodes, const int begin, const int end) {
     Point bmin, bmax;
     bounds(triangles, begin, end, bmin, bmax); //  englobant
-    Point cmin, cmax;
     if(end - begin < 2) { // 1 triangle, construire une feuille
-        nodes.push_back( {(vec3)bmin, -(begin + 1), (vec3)bmax, -(end + 1)} );
+        nodes.push_back( {(vec3)bmin, -(begin + 1), (vec3)bmax, -1} );
         return int(nodes.size()) -1;
     }
+    Point cmin, cmax;
     centroid_bounds(triangles, begin, end, cmin, cmax); // englobant des centres
     
     int axis = bounds_max(cmin, cmax);
@@ -270,11 +269,8 @@ struct RT : public AppTime
         glTexImage2D(GL_TEXTURE_2D, 0, GL_R32UI, window_width(), window_height(), 0, GL_RED_INTEGER, GL_UNSIGNED_INT, nullptr);
         glBindTexture(GL_TEXTURE_2D, 0);
 
+        
         // Triangles
-        // storage buffers
-        glGenBuffers(1, &m_triangle_buffer);
-        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, m_triangle_buffer);
-
         std::vector<triangle> dataTriangle;
         dataTriangle.reserve(m_mesh.triangle_count());
         for(int i= 0; i < m_mesh.triangle_count(); i++)
@@ -282,29 +278,22 @@ struct RT : public AppTime
             TriangleData t= m_mesh.triangle(i);
             dataTriangle.push_back( { Point(t.a), Point(t.b) - Point(t.a), Point(t.c) - Point(t.a) } );
         }
-        
-        // alloue le buffer
-        // alloue au moins 1024 triangles, cf le shader
-        //if(dataTriangle.size() < 1024)
-        //    dataTriangle.resize(1024);
-        glBufferData(GL_SHADER_STORAGE_BUFFER, dataTriangle.size() * sizeof(triangle), dataTriangle.data(), GL_STATIC_READ);
 
         // BVH des triangles
         std::vector<Node> bvh, bvh_cousu;
         int root = build_node_centroids(dataTriangle, bvh, 0, dataTriangle.size());
         build_bvh_cousu(bvh, bvh_cousu, root);
 
-        for (uint i = 0; i < bvh_cousu.size(); ++i) {
-            std::string fils;
-            if (bvh_cousu[i].g < 0) fils = "(" + std::to_string(abs(bvh_cousu[i].g) - 1) + ")";
-            else fils = " " + std::to_string(bvh_cousu[i].g) + " ";
-            std::cout << i << " - F = " << fils << ", N = " << bvh_cousu[i].d << std::endl;
-            Point bmin = getPoint(bvh_cousu[i].bmin);
-            Point bmax = getPoint(bvh_cousu[i].bmax);
-            std::cout << bmin << " - " << bmax << std::endl;
-            std::cout << std::endl;
-        }
+        // Triangles - storage buffers
+        glGenBuffers(1, &m_triangle_buffer);
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, m_triangle_buffer);
+        // alloue le buffer
+        // alloue au moins 1024 triangles, cf le shader
+        //if(dataTriangle.size() < 1024)
+        //    dataTriangle.resize(1024);
+        glBufferData(GL_SHADER_STORAGE_BUFFER, dataTriangle.size() * sizeof(triangle), dataTriangle.data(), GL_STATIC_READ);
 
+        // Nodes - storage buffers
         glGenBuffers(1, &m_nodes_buffer);
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, m_nodes_buffer);
         

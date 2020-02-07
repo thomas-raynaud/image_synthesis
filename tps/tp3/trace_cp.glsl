@@ -129,10 +129,12 @@ bool intersectSphere(const vec4 sphere, const in vec3 o, const in vec3 d, const 
     return (rt < tmax && rt > 0);
 }
 
+// glibc
 const uint a= 1103515245;
 const uint b= 12345;
 const uint m= 1u << 31;
-uint x = 0;
+uint x;
+uint x0;
 
 float getSample(inout uint x)    				// renvoie un reel aleatoire dans [0 1]
 {
@@ -140,6 +142,30 @@ float getSample(inout uint x)    				// renvoie un reel aleatoire dans [0 1]
     return float(x) / float(m);
 }
 
+uint index(const uint i )    	// prepare la generation du terme i
+{
+    uint cur_mul= a;
+    uint cur_add= b;
+    uint acc_mul= 1u;
+    uint acc_add= 0u;
+
+    uint delta= i;
+    while(delta != 0)
+    {
+        if((delta & 1u) != 0)
+        {
+            acc_mul= acc_mul * cur_mul;
+            acc_add= acc_add * cur_mul + cur_add;
+        }
+        
+        cur_add= cur_mul * cur_add + cur_add;
+        cur_mul= cur_mul * cur_mul;
+        delta= delta >> 1;
+    }
+    
+    x= acc_mul * x0 + acc_add;
+    return x;
+}
 
 vec3 getAmbientOcclusion(in vec3 p, in vec3 n) {
     vec3 color = vec3(0, 0, 0);
@@ -147,6 +173,9 @@ vec3 getAmbientOcclusion(in vec3 p, in vec3 n) {
     vec3 v_tmp;
     float u1, u2, phi;
     float a, d, sign2;
+
+    x0 = x;
+    index(x);
 
     N = normalize(n);
 
@@ -220,15 +249,6 @@ void main() {
             n_id = nodes[n_id].next;
         }
     }
-
-    // Intersection avec les triangles
-    /*for(int i= 0; i < triangle_count; i++) {
-        if(intersectTriangle(triangles[i], o, d, hit, t, n2)) {
-            hit= t;
-            hitid= i;
-            n = n2;
-        }
-    }*/
 
     // Intersection avec les sphères
     for(int i= 0; i < sphere_count; i++) {
