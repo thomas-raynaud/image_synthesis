@@ -96,7 +96,8 @@ end
  -- description des projets		 
 projects = {
 	"shader_kit",
-	"image_viewer"
+	"image_viewer",
+	"directions"
 }
 
 for i, name in ipairs(projects) do
@@ -213,10 +214,19 @@ for i, name in ipairs(tutosM2) do
 end
 
 projetsM2 = {
-	"tp1",
-	"tp1_quaternius",
-	"tp2"
+	"tp0",
+	"tp2",
+	"tp3"
 }
+
+project("tp1")
+	language "C++"
+	kind "ConsoleApp"
+	targetdir "bin"
+	files ( gkit_files )
+	files { gkit_dir .. "/tps/tp1/tp1.cpp" }
+	files { gkit_dir .. "/tps/tp1/quaternius.cpp" }
+	files { gkit_dir .. "/tps/tp1/quaternius.h" }
 
 for i, name in ipairs(projetsM2) do
 	project(name)
