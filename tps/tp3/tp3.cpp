@@ -100,12 +100,10 @@ void bounds(std::vector<triangle> & triangles, const int begin, const int end, P
     Point a, b, c;
     bmin = getPoint(triangles[begin].a);
     bmax = getPoint(triangles[begin].a);
-    //std::cout << begin << " " << end << std::endl;
     for (int i = begin; i < end; ++i) {
         a = getPoint(triangles[i].a);
         b = a + getPoint(triangles[i].ab);
         c = a + getPoint(triangles[i].ac);
-        //std::cout << a << " " << b << " " << c << std::endl;
         bmin = min(bmin, min(a, min(b, c)));
         bmax = max(bmax, max(a, max(b, c)));
     }
@@ -221,6 +219,50 @@ void build_bvh_cousu(std::vector<Node> & nodes, std::vector<Node> & nodesCousus,
     }
 }
 
+struct RNG
+{
+    unsigned int x;
+    unsigned int x0;
+
+    RNG( const unsigned int seed ) : x(seed), x0(seed) {}
+
+    // glibc
+    static const unsigned int a= 1103515245;
+    static const unsigned int b= 12345;
+    static const unsigned int m= 1u << 31;
+   
+    float sample( )    				// renvoie un reel aleatoire dans [0 1]
+    {
+        x= (a*x + b) % m;
+        return float(x) / float(m);
+    }
+
+    unsigned int index( const size_t i )    	// prepare la generation du terme i
+    {
+        unsigned int cur_mul= a;
+        unsigned int cur_add= b;
+        unsigned int acc_mul= 1u;
+        unsigned int acc_add= 0u;
+   
+        size_t delta= i;
+        while(delta)
+        {
+            if(delta & 1u)
+            {
+                acc_mul= acc_mul * cur_mul;
+                acc_add= acc_add * cur_mul + cur_add;
+            }
+           
+            cur_add= cur_mul * cur_add + cur_add;
+            cur_mul= cur_mul * cur_mul;
+            delta= delta >> 1u;
+        }
+       
+        x= acc_mul * x0 + acc_add;
+	return x;
+    }
+};
+
 struct RT : public AppTime
 {
     // constructeur : donner les dimensions de l'image, et eventuellement la version d'openGL.
@@ -233,6 +275,8 @@ struct RT : public AppTime
     {
         if(m_mesh == Mesh::error())
             return -1;
+
+        nbEchantillons = 0;
         
         Point pmin, pmax;
         m_mesh.bounds(pmin, pmax);
@@ -255,20 +299,31 @@ struct RT : public AppTime
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, window_width(), window_height(), 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
         glBindTexture(GL_TEXTURE_2D, 0);
 
-        // Texture de bruit
-        glGenTextures(1, &m_texture_bruit);
-        glBindTexture(GL_TEXTURE_2D, m_texture_bruit);
+        // Génération des seeds
+        glGenTextures(1, &m_seed_image);
+        glBindTexture(GL_TEXTURE_2D, m_seed_image);
 
-        // fixe les parametres de filtrage par defaut
+        RNG rng(1);
+
+        std::vector<uint> seeds;
+        for (int i = 0; i < window_width(); ++i) {
+            for (int j = 0; j < window_height(); ++j) {
+                rng.index(i * j);
+                seeds.push_back(rng.x);
+            }
+        }
+
+        glTexImage2D(GL_TEXTURE_2D, 0,
+            GL_R32UI, window_width(), window_height(), 0,
+            GL_RED_INTEGER, GL_UNSIGNED_INT, seeds.data());
+
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_R32UI, window_width(), window_height(), 0, GL_RED_INTEGER, GL_UNSIGNED_INT, nullptr);
         glBindTexture(GL_TEXTURE_2D, 0);
-
         
         // Triangles
         std::vector<triangle> dataTriangle;
@@ -321,11 +376,6 @@ struct RT : public AppTime
         // Framebuffer
         glGenFramebuffers(1, &m_framebuffer);
 
-        glViewport(0, 0, window_width(), window_height());
-        
-        // On bind la texture
-        glFramebufferTexture2D(GL_READ_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_texture, 0);
-
         return 0;
     }
     
@@ -350,13 +400,24 @@ struct RT : public AppTime
         // deplace la camera
         int mx, my;
         unsigned int mb= SDL_GetRelativeMouseState(&mx, &my);
-        if(mb & SDL_BUTTON(1))              // le bouton gauche est enfonce
+        if(mb & SDL_BUTTON(1)) {             // le bouton gauche est enfonce
             m_camera.rotation(mx, my);
-        else if(mb & SDL_BUTTON(3))         // le bouton droit est enfonce
+            nbEchantillons = 0;
+        }
+        else if(mb & SDL_BUTTON(3)) {        // le bouton droit est enfonce
             m_camera.move(mx);
-        else if(mb & SDL_BUTTON(2))         // le bouton du milieu est enfonce
+            nbEchantillons = 0;
+        }
+        else if(mb & SDL_BUTTON(2)) {        // le bouton du milieu est enfonce
             m_camera.translation((float) mx / (float) window_width(), (float) my / (float) window_height());
+            nbEchantillons = 0;
+        }
 
+        if (nbEchantillons == 0) {
+            glClearTexImage(m_texture, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+        }
+
+        nbEchantillons++;
         
         Transform m;
         Transform v = m_camera.view();
@@ -368,12 +429,14 @@ struct RT : public AppTime
         program_uniform(m_program, "invViewport", Viewport(window_width(), window_height()).inverse());
         program_uniform(m_program, "triangle_count", m_mesh.triangle_count());
         program_uniform(m_program, "sphere_count", 2);
+        program_uniform(m_program, "nb_echantillons", nbEchantillons);
 
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, m_triangle_buffer);
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, m_nodes_buffer);
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, m_sphere_buffer);
 
         glBindImageTexture(0, m_texture, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA8);
+        glBindImageTexture(1, m_seed_image, 0, GL_FALSE, 0, GL_READ_WRITE, GL_R32UI);
 
         
         // calcule le nombre de groupes de threads
@@ -419,7 +482,9 @@ protected:
     GLuint m_framebuffer;
 
     GLuint m_texture;
-    GLuint m_texture_bruit;
+    GLuint m_seed_image;
+
+    uint nbEchantillons;
 };
 
     

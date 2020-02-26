@@ -42,8 +42,9 @@ uniform mat4 mvpInvMatrix;
 uniform mat4 invViewport;
 uniform int triangle_count;
 uniform int sphere_count;
+uniform uint nb_echantillons;
 layout(binding = 0, rgba8) uniform image2D image;
-//layout(binding = 1, uint) uniform uimage2D image_bruit;
+layout(binding = 1, r32ui) uniform uimage2D seeds;
 
 bool intersectBox(const vec3 o, const vec3 d, const vec3 pmin, const vec3 pmax, const float tmax)
 {
@@ -133,38 +134,11 @@ bool intersectSphere(const vec4 sphere, const in vec3 o, const in vec3 d, const 
 const uint a= 1103515245;
 const uint b= 12345;
 const uint m= 1u << 31;
-uint x;
-uint x0;
 
 float getSample(inout uint x)    				// renvoie un reel aleatoire dans [0 1]
 {
     x= (a*x + b) % m;
     return float(x) / float(m);
-}
-
-uint index(const uint i )    	// prepare la generation du terme i
-{
-    uint cur_mul= a;
-    uint cur_add= b;
-    uint acc_mul= 1u;
-    uint acc_add= 0u;
-
-    uint delta= i;
-    while(delta != 0)
-    {
-        if((delta & 1u) != 0)
-        {
-            acc_mul= acc_mul * cur_mul;
-            acc_add= acc_add * cur_mul + cur_add;
-        }
-        
-        cur_add= cur_mul * cur_add + cur_add;
-        cur_mul= cur_mul * cur_mul;
-        delta= delta >> 1;
-    }
-    
-    x= acc_mul * x0 + acc_add;
-    return x;
 }
 
 vec3 getAmbientOcclusion(in vec3 p, in vec3 n) {
@@ -174,41 +148,41 @@ vec3 getAmbientOcclusion(in vec3 p, in vec3 n) {
     float u1, u2, phi;
     float a, d, sign2;
 
-    x0 = x;
-    index(x);
+    uint x = imageLoad(seeds, ivec2(gl_GlobalInvocationID.xy)).x;
 
     N = normalize(n);
 
-    for (int i = 0; i < 32; ++i) {
-        // Générer une direction aléatoire depuis p
-        u1 = getSample(x);
-        u2 = getSample(x);
+    // Générer une direction aléatoire depuis p
+    u1 = getSample(x);
+    u2 = getSample(x);
 
-        phi = 2 * PI * u1;
-        v_local = vec3(cos(phi) * sqrt(1 - u2), sin(phi) * sqrt(1 - u2), sqrt(u2));
+    phi = 2 * PI * u1;
+    v_local = vec3(cos(phi) * sqrt(1 - u2), sin(phi) * sqrt(1 - u2), sqrt(u2));
 
-        // Passer la direction dans le repère monde
-        if (N.z >= 0) sign2 = 1.0;
-        else sign2 = -1.0;
+    // Passer la direction dans le repère monde
+    if (N.z >= 0) sign2 = 1.0;
+    else sign2 = -1.0;
 
-        a= -1.0 / (sign2 + N.z);
-        d= N.x * N.y * a;
-        T= vec3(1.0f + sign2 * N.x * N.x * a, sign2 * d, -sign2 * N.x);
-        B= vec3(d, sign2 + N.y * N.y * a, -N.y);
+    a= -1.0 / (sign2 + N.z);
+    d= N.x * N.y * a;
+    T= vec3(1.0f + sign2 * N.x * N.x * a, sign2 * d, -sign2 * N.x);
+    B= vec3(d, sign2 + N.y * N.y * a, -N.y);
 
-        v = normalize(v_local.x * T + v_local.y * B + v_local.z * N);
+    v = normalize(v_local.x * T + v_local.y * B + v_local.z * N);
 
-        if (!triangleVisible(p, v, 100)) {
-            color = color + vec3(1, 1, 1);
-        }
+    if (!triangleVisible(p, v, 100)) {
+        color = color + vec3(1, 1, 1);
     }
 
-    return color / 32;
+    imageStore(seeds, ivec2(gl_GlobalInvocationID.xy), uvec4(x,1,1,1));
+
+    return color;
 }
 
 
 layout(local_size_x = 8, local_size_y = 8) in;
 void main() {
+    if (nb_echantillons > 60) return;
     vec2 pix = gl_GlobalInvocationID.xy;
 
     // construction du rayon pour le pixel, passage depuis le repere projectif
@@ -265,6 +239,12 @@ void main() {
         vec3 p = o + hit * d; // Point d'intersection
         p = p + EPSILON * -n;
         color = getAmbientOcclusion(p, -n);
+    }
+
+    if (nb_echantillons > 1) {
+        vec3 colorImg = imageLoad(image, ivec2(gl_GlobalInvocationID.xy)).rgb;
+        float t_color = 1.0 / nb_echantillons;
+        color = (1.0 - t_color) * colorImg + t_color * color;
     }
     
     imageStore(image, ivec2(pix.xy), vec4(color, 1));

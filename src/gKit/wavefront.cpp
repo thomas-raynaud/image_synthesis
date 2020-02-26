@@ -299,7 +299,7 @@ MaterialLib read_materials( const char *filename )
         {
             if(sscanf(line, "newmtl %[^\r\n]", tmp) == 1)
             {
-                std::cout << tmp << std::endl;
+                //std::cout << tmp << std::endl;
                 materials.names.push_back( tmp );
                 materials.data.push_back( Material() );
                 material= &materials.data.back();

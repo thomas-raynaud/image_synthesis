@@ -6,215 +6,19 @@ ifndef config
 endif
 export config
 
-PROJECTS := shader_kit image_viewer directions tuto1 tuto2 tuto3 tuto4 tuto5 tuto6 tuto7 tuto7_camera tuto7_scene tuto8 tuto9 tuto9_texture1 tuto9_textures tuto9_buffers tuto10 tuto_transform tuto_pad tuto1GL tuto2GL tuto2GL_app tuto3GL tuto3GL_reflect tuto4GL tuto4GL_normals tuto5GL tuto5GL_sampler tuto5GL_samplers tuto5GL_multi tuto6GL tuto6GL_buffer tuto_framebuffer tuto_uniform_buffers tuto_storage tuto_storage2 tuto_storage_buffer tuto_storage_texture min_data tuto_vertex_compute mesh_viewer tuto_time tuto_mdi tuto_mdi_count tuto_stream tuto_is tuto_raytrace_fragment tuto_ao tp1 tp0 tp2 tp3
+PROJECTS := image_viewer tp1 tp2 tp3
 
 .PHONY: all clean help $(PROJECTS)
 
 all: $(PROJECTS)
 
-shader_kit: 
-	@echo "==== Building shader_kit ($(config)) ===="
-	@${MAKE} --no-print-directory -C . -f shader_kit.make
-
 image_viewer: 
 	@echo "==== Building image_viewer ($(config)) ===="
 	@${MAKE} --no-print-directory -C . -f image_viewer.make
 
-directions: 
-	@echo "==== Building directions ($(config)) ===="
-	@${MAKE} --no-print-directory -C . -f directions.make
-
-tuto1: 
-	@echo "==== Building tuto1 ($(config)) ===="
-	@${MAKE} --no-print-directory -C . -f tuto1.make
-
-tuto2: 
-	@echo "==== Building tuto2 ($(config)) ===="
-	@${MAKE} --no-print-directory -C . -f tuto2.make
-
-tuto3: 
-	@echo "==== Building tuto3 ($(config)) ===="
-	@${MAKE} --no-print-directory -C . -f tuto3.make
-
-tuto4: 
-	@echo "==== Building tuto4 ($(config)) ===="
-	@${MAKE} --no-print-directory -C . -f tuto4.make
-
-tuto5: 
-	@echo "==== Building tuto5 ($(config)) ===="
-	@${MAKE} --no-print-directory -C . -f tuto5.make
-
-tuto6: 
-	@echo "==== Building tuto6 ($(config)) ===="
-	@${MAKE} --no-print-directory -C . -f tuto6.make
-
-tuto7: 
-	@echo "==== Building tuto7 ($(config)) ===="
-	@${MAKE} --no-print-directory -C . -f tuto7.make
-
-tuto7_camera: 
-	@echo "==== Building tuto7_camera ($(config)) ===="
-	@${MAKE} --no-print-directory -C . -f tuto7_camera.make
-
-tuto7_scene: 
-	@echo "==== Building tuto7_scene ($(config)) ===="
-	@${MAKE} --no-print-directory -C . -f tuto7_scene.make
-
-tuto8: 
-	@echo "==== Building tuto8 ($(config)) ===="
-	@${MAKE} --no-print-directory -C . -f tuto8.make
-
-tuto9: 
-	@echo "==== Building tuto9 ($(config)) ===="
-	@${MAKE} --no-print-directory -C . -f tuto9.make
-
-tuto9_texture1: 
-	@echo "==== Building tuto9_texture1 ($(config)) ===="
-	@${MAKE} --no-print-directory -C . -f tuto9_texture1.make
-
-tuto9_textures: 
-	@echo "==== Building tuto9_textures ($(config)) ===="
-	@${MAKE} --no-print-directory -C . -f tuto9_textures.make
-
-tuto9_buffers: 
-	@echo "==== Building tuto9_buffers ($(config)) ===="
-	@${MAKE} --no-print-directory -C . -f tuto9_buffers.make
-
-tuto10: 
-	@echo "==== Building tuto10 ($(config)) ===="
-	@${MAKE} --no-print-directory -C . -f tuto10.make
-
-tuto_transform: 
-	@echo "==== Building tuto_transform ($(config)) ===="
-	@${MAKE} --no-print-directory -C . -f tuto_transform.make
-
-tuto_pad: 
-	@echo "==== Building tuto_pad ($(config)) ===="
-	@${MAKE} --no-print-directory -C . -f tuto_pad.make
-
-tuto1GL: 
-	@echo "==== Building tuto1GL ($(config)) ===="
-	@${MAKE} --no-print-directory -C . -f tuto1GL.make
-
-tuto2GL: 
-	@echo "==== Building tuto2GL ($(config)) ===="
-	@${MAKE} --no-print-directory -C . -f tuto2GL.make
-
-tuto2GL_app: 
-	@echo "==== Building tuto2GL_app ($(config)) ===="
-	@${MAKE} --no-print-directory -C . -f tuto2GL_app.make
-
-tuto3GL: 
-	@echo "==== Building tuto3GL ($(config)) ===="
-	@${MAKE} --no-print-directory -C . -f tuto3GL.make
-
-tuto3GL_reflect: 
-	@echo "==== Building tuto3GL_reflect ($(config)) ===="
-	@${MAKE} --no-print-directory -C . -f tuto3GL_reflect.make
-
-tuto4GL: 
-	@echo "==== Building tuto4GL ($(config)) ===="
-	@${MAKE} --no-print-directory -C . -f tuto4GL.make
-
-tuto4GL_normals: 
-	@echo "==== Building tuto4GL_normals ($(config)) ===="
-	@${MAKE} --no-print-directory -C . -f tuto4GL_normals.make
-
-tuto5GL: 
-	@echo "==== Building tuto5GL ($(config)) ===="
-	@${MAKE} --no-print-directory -C . -f tuto5GL.make
-
-tuto5GL_sampler: 
-	@echo "==== Building tuto5GL_sampler ($(config)) ===="
-	@${MAKE} --no-print-directory -C . -f tuto5GL_sampler.make
-
-tuto5GL_samplers: 
-	@echo "==== Building tuto5GL_samplers ($(config)) ===="
-	@${MAKE} --no-print-directory -C . -f tuto5GL_samplers.make
-
-tuto5GL_multi: 
-	@echo "==== Building tuto5GL_multi ($(config)) ===="
-	@${MAKE} --no-print-directory -C . -f tuto5GL_multi.make
-
-tuto6GL: 
-	@echo "==== Building tuto6GL ($(config)) ===="
-	@${MAKE} --no-print-directory -C . -f tuto6GL.make
-
-tuto6GL_buffer: 
-	@echo "==== Building tuto6GL_buffer ($(config)) ===="
-	@${MAKE} --no-print-directory -C . -f tuto6GL_buffer.make
-
-tuto_framebuffer: 
-	@echo "==== Building tuto_framebuffer ($(config)) ===="
-	@${MAKE} --no-print-directory -C . -f tuto_framebuffer.make
-
-tuto_uniform_buffers: 
-	@echo "==== Building tuto_uniform_buffers ($(config)) ===="
-	@${MAKE} --no-print-directory -C . -f tuto_uniform_buffers.make
-
-tuto_storage: 
-	@echo "==== Building tuto_storage ($(config)) ===="
-	@${MAKE} --no-print-directory -C . -f tuto_storage.make
-
-tuto_storage2: 
-	@echo "==== Building tuto_storage2 ($(config)) ===="
-	@${MAKE} --no-print-directory -C . -f tuto_storage2.make
-
-tuto_storage_buffer: 
-	@echo "==== Building tuto_storage_buffer ($(config)) ===="
-	@${MAKE} --no-print-directory -C . -f tuto_storage_buffer.make
-
-tuto_storage_texture: 
-	@echo "==== Building tuto_storage_texture ($(config)) ===="
-	@${MAKE} --no-print-directory -C . -f tuto_storage_texture.make
-
-min_data: 
-	@echo "==== Building min_data ($(config)) ===="
-	@${MAKE} --no-print-directory -C . -f min_data.make
-
-tuto_vertex_compute: 
-	@echo "==== Building tuto_vertex_compute ($(config)) ===="
-	@${MAKE} --no-print-directory -C . -f tuto_vertex_compute.make
-
-mesh_viewer: 
-	@echo "==== Building mesh_viewer ($(config)) ===="
-	@${MAKE} --no-print-directory -C . -f mesh_viewer.make
-
-tuto_time: 
-	@echo "==== Building tuto_time ($(config)) ===="
-	@${MAKE} --no-print-directory -C . -f tuto_time.make
-
-tuto_mdi: 
-	@echo "==== Building tuto_mdi ($(config)) ===="
-	@${MAKE} --no-print-directory -C . -f tuto_mdi.make
-
-tuto_mdi_count: 
-	@echo "==== Building tuto_mdi_count ($(config)) ===="
-	@${MAKE} --no-print-directory -C . -f tuto_mdi_count.make
-
-tuto_stream: 
-	@echo "==== Building tuto_stream ($(config)) ===="
-	@${MAKE} --no-print-directory -C . -f tuto_stream.make
-
-tuto_is: 
-	@echo "==== Building tuto_is ($(config)) ===="
-	@${MAKE} --no-print-directory -C . -f tuto_is.make
-
-tuto_raytrace_fragment: 
-	@echo "==== Building tuto_raytrace_fragment ($(config)) ===="
-	@${MAKE} --no-print-directory -C . -f tuto_raytrace_fragment.make
-
-tuto_ao: 
-	@echo "==== Building tuto_ao ($(config)) ===="
-	@${MAKE} --no-print-directory -C . -f tuto_ao.make
-
 tp1: 
 	@echo "==== Building tp1 ($(config)) ===="
 	@${MAKE} --no-print-directory -C . -f tp1.make
-
-tp0: 
-	@echo "==== Building tp0 ($(config)) ===="
-	@${MAKE} --no-print-directory -C . -f tp0.make
 
 tp2: 
 	@echo "==== Building tp2 ($(config)) ===="
@@ -225,57 +29,8 @@ tp3:
 	@${MAKE} --no-print-directory -C . -f tp3.make
 
 clean:
-	@${MAKE} --no-print-directory -C . -f shader_kit.make clean
 	@${MAKE} --no-print-directory -C . -f image_viewer.make clean
-	@${MAKE} --no-print-directory -C . -f directions.make clean
-	@${MAKE} --no-print-directory -C . -f tuto1.make clean
-	@${MAKE} --no-print-directory -C . -f tuto2.make clean
-	@${MAKE} --no-print-directory -C . -f tuto3.make clean
-	@${MAKE} --no-print-directory -C . -f tuto4.make clean
-	@${MAKE} --no-print-directory -C . -f tuto5.make clean
-	@${MAKE} --no-print-directory -C . -f tuto6.make clean
-	@${MAKE} --no-print-directory -C . -f tuto7.make clean
-	@${MAKE} --no-print-directory -C . -f tuto7_camera.make clean
-	@${MAKE} --no-print-directory -C . -f tuto7_scene.make clean
-	@${MAKE} --no-print-directory -C . -f tuto8.make clean
-	@${MAKE} --no-print-directory -C . -f tuto9.make clean
-	@${MAKE} --no-print-directory -C . -f tuto9_texture1.make clean
-	@${MAKE} --no-print-directory -C . -f tuto9_textures.make clean
-	@${MAKE} --no-print-directory -C . -f tuto9_buffers.make clean
-	@${MAKE} --no-print-directory -C . -f tuto10.make clean
-	@${MAKE} --no-print-directory -C . -f tuto_transform.make clean
-	@${MAKE} --no-print-directory -C . -f tuto_pad.make clean
-	@${MAKE} --no-print-directory -C . -f tuto1GL.make clean
-	@${MAKE} --no-print-directory -C . -f tuto2GL.make clean
-	@${MAKE} --no-print-directory -C . -f tuto2GL_app.make clean
-	@${MAKE} --no-print-directory -C . -f tuto3GL.make clean
-	@${MAKE} --no-print-directory -C . -f tuto3GL_reflect.make clean
-	@${MAKE} --no-print-directory -C . -f tuto4GL.make clean
-	@${MAKE} --no-print-directory -C . -f tuto4GL_normals.make clean
-	@${MAKE} --no-print-directory -C . -f tuto5GL.make clean
-	@${MAKE} --no-print-directory -C . -f tuto5GL_sampler.make clean
-	@${MAKE} --no-print-directory -C . -f tuto5GL_samplers.make clean
-	@${MAKE} --no-print-directory -C . -f tuto5GL_multi.make clean
-	@${MAKE} --no-print-directory -C . -f tuto6GL.make clean
-	@${MAKE} --no-print-directory -C . -f tuto6GL_buffer.make clean
-	@${MAKE} --no-print-directory -C . -f tuto_framebuffer.make clean
-	@${MAKE} --no-print-directory -C . -f tuto_uniform_buffers.make clean
-	@${MAKE} --no-print-directory -C . -f tuto_storage.make clean
-	@${MAKE} --no-print-directory -C . -f tuto_storage2.make clean
-	@${MAKE} --no-print-directory -C . -f tuto_storage_buffer.make clean
-	@${MAKE} --no-print-directory -C . -f tuto_storage_texture.make clean
-	@${MAKE} --no-print-directory -C . -f min_data.make clean
-	@${MAKE} --no-print-directory -C . -f tuto_vertex_compute.make clean
-	@${MAKE} --no-print-directory -C . -f mesh_viewer.make clean
-	@${MAKE} --no-print-directory -C . -f tuto_time.make clean
-	@${MAKE} --no-print-directory -C . -f tuto_mdi.make clean
-	@${MAKE} --no-print-directory -C . -f tuto_mdi_count.make clean
-	@${MAKE} --no-print-directory -C . -f tuto_stream.make clean
-	@${MAKE} --no-print-directory -C . -f tuto_is.make clean
-	@${MAKE} --no-print-directory -C . -f tuto_raytrace_fragment.make clean
-	@${MAKE} --no-print-directory -C . -f tuto_ao.make clean
 	@${MAKE} --no-print-directory -C . -f tp1.make clean
-	@${MAKE} --no-print-directory -C . -f tp0.make clean
 	@${MAKE} --no-print-directory -C . -f tp2.make clean
 	@${MAKE} --no-print-directory -C . -f tp3.make clean
 
@@ -291,57 +46,8 @@ help:
 	@echo "TARGETS:"
 	@echo "   all (default)"
 	@echo "   clean"
-	@echo "   shader_kit"
 	@echo "   image_viewer"
-	@echo "   directions"
-	@echo "   tuto1"
-	@echo "   tuto2"
-	@echo "   tuto3"
-	@echo "   tuto4"
-	@echo "   tuto5"
-	@echo "   tuto6"
-	@echo "   tuto7"
-	@echo "   tuto7_camera"
-	@echo "   tuto7_scene"
-	@echo "   tuto8"
-	@echo "   tuto9"
-	@echo "   tuto9_texture1"
-	@echo "   tuto9_textures"
-	@echo "   tuto9_buffers"
-	@echo "   tuto10"
-	@echo "   tuto_transform"
-	@echo "   tuto_pad"
-	@echo "   tuto1GL"
-	@echo "   tuto2GL"
-	@echo "   tuto2GL_app"
-	@echo "   tuto3GL"
-	@echo "   tuto3GL_reflect"
-	@echo "   tuto4GL"
-	@echo "   tuto4GL_normals"
-	@echo "   tuto5GL"
-	@echo "   tuto5GL_sampler"
-	@echo "   tuto5GL_samplers"
-	@echo "   tuto5GL_multi"
-	@echo "   tuto6GL"
-	@echo "   tuto6GL_buffer"
-	@echo "   tuto_framebuffer"
-	@echo "   tuto_uniform_buffers"
-	@echo "   tuto_storage"
-	@echo "   tuto_storage2"
-	@echo "   tuto_storage_buffer"
-	@echo "   tuto_storage_texture"
-	@echo "   min_data"
-	@echo "   tuto_vertex_compute"
-	@echo "   mesh_viewer"
-	@echo "   tuto_time"
-	@echo "   tuto_mdi"
-	@echo "   tuto_mdi_count"
-	@echo "   tuto_stream"
-	@echo "   tuto_is"
-	@echo "   tuto_raytrace_fragment"
-	@echo "   tuto_ao"
 	@echo "   tp1"
-	@echo "   tp0"
 	@echo "   tp2"
 	@echo "   tp3"
 	@echo ""

@@ -116,4 +116,12 @@ project("tp2")
     kind "ConsoleApp"
     targetdir "bin"
     files ( gkit_files )
-    files { gkit_dir .. "/tps/tp2/tp2.cpp" }
+	files { gkit_dir .. "/tps/tp2/tp2.cpp" }
+
+
+project("tp3")
+    language "C++"
+    kind "ConsoleApp"
+    targetdir "bin"
+    files ( gkit_files )
+    files { gkit_dir .. "/tps/tp3/tp3.cpp" }

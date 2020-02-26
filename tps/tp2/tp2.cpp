@@ -13,8 +13,8 @@
 
 #define EPSILON 0.0001
 #define GAMMA 1.5
-#define NB_RAYONS 0
-#define NB_REBONDS 1
+#define NB_RAYONS 64
+#define NB_REBONDS 4
 
 
 struct Ray
@@ -347,7 +347,7 @@ Color indirect(Vector p, Vector pn,
         color = color + direct(Vector(q), qn, diffuse, sources, bvh, mesh, rng, u01, nbRebonds - 1) + (1.f / float(M_PI) * diffuse) * (1 / M_PI) * cos_theta;
         if (nbRebonds > 1) {
             nbRebonds--;
-            color = color + indirect(Vector(q), qn, sources, bvh, mesh, rng, u01, nbRebonds)/* * 0.5*/;
+            color = color + indirect(Vector(q), qn, sources, bvh, mesh, rng, u01, nbRebonds) * 0.5;
         }
     }
     return color;
@@ -356,8 +356,8 @@ Color indirect(Vector p, Vector pn,
 
 int main( const int argc, const char **argv )
 {
-    const char *mesh_filename= "tps/tp2/sponza/sponza.obj";
-    const char *orbiter_filename= "tps/tp2/sponza_orbiter.txt";
+    const char *mesh_filename= "tps/tp2/cornell.obj";
+    const char *orbiter_filename= "tps/tp2/cornell_orbiter.txt";
     
     if(argc > 1) mesh_filename= argv[1];
     if(argc > 2) orbiter_filename= argv[2];
@@ -459,31 +459,3 @@ int main( const int argc, const char **argv )
     write_image_hdr(image, "tps/tp2/render.hdr");
     return 0;
 }
-
-
-void bounds(const int &begin, const int &end, Point &bmin, Point &bmax) {
-
-}
-
-/*int  build_node_centroids(const Mesh &m, const  int begin , const  int  end ) {
-    std::vector<>
-    // Créer la liste des triangles
-    Point  bmin , bmax;
-    bounds(begin , end , bmin , bmax);//  englobant
-    Point  cmin , cmax;
-    m.triangle()
-    centroid_bounds(begin , end , cmin , cmax);//  englobant  des  centres
-    if(end - begin  < 2) {// 1 triangle ,  construire  une  feuille
-        nodes.push_back( {bmin , bmax , -begin , -end} );
-        return  int(nodes.size())  -1;
-    }
-    int  axis= bounds_max(cmin , cmax);
-    int m= std:: distance(triangles.data(),//  repartir  les  triangles
-        std:: partition(triangles.data() +begin , triangles.data() +end ,
-            centroid_less(axis , (cmax(axis) + cmin(axis)) / 2));
-    int  left= build_node(begin , m);//  construire  les  fils  du  noeud
-    int  right= build_node(m, end);//  construire  le  noeud
-    nodes.push_back( {bmin , bmax , left , right} );
-    return  int(nodes.size())  -1;
-}*/
-//  int  root=  build_node_centroids (0,  int(triangles .size ());
