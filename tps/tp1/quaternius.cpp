@@ -14,7 +14,7 @@ Quaternius::Quaternius(float speed, Transform pv, Transform source_pv) {
     glBindVertexArray(m_vao);
 
     // charger les attributs du mesh (positions et normales
-    Mesh mesh = read_mesh("robot_quaternius/run/Robot_000001.obj");
+    Mesh mesh = read_mesh("data/robot_quaternius/run/Robot_000001.obj");
     m_vertex_count = mesh.vertex_count();
     glBindBuffer(GL_ARRAY_BUFFER, m_vertex_buffer);
     glBufferData(GL_ARRAY_BUFFER, m_vertex_count * sizeof(vec3) * NB_MESHES * 2, nullptr, GL_STATIC_DRAW);
@@ -23,7 +23,7 @@ Quaternius::Quaternius(float speed, Transform pv, Transform source_pv) {
     std::string mesh_path;
     for (int i = 1; i <= NB_MESHES; ++i) {
         mesh_path.clear();
-        mesh_path = "robot_quaternius/run/Robot_0000";
+        mesh_path = "data/robot_quaternius/run/Robot_0000";
         if (i < 10) mesh_path += "0";
         mesh_path += std::to_string(i) + ".obj";
         mesh = read_mesh(mesh_path.c_str());

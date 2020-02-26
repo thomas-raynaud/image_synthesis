@@ -489,7 +489,7 @@ protected:
 
     
 int main( int argc, char **argv ) {
-    const char *filename= "tps/tp3/cornell.obj";
+    const char *filename= "data/cornell/cornell.obj";
     if(argc > 1)
         filename= argv[1];
     

@@ -134,7 +134,6 @@ public:
         glBindVertexArray(m_objet.vao);
 
         glUseProgram(m_program);
-        program_uniform(m_program, "texture", m_texture);
         Transform projection= m_camera.projection(window_width(), window_height(), 45);
         Transform mvp, vp = projection * m_camera.view();
         

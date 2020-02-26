@@ -73,7 +73,7 @@ public:
 
 
         // Quaternius
-        mesh = read_mesh("robot_quaternius/run/Robot_000001.obj");
+        mesh = read_mesh("data/robot_quaternius/run/Robot_000001.obj");
 
         m_quaternius1 = new Quaternius(200.f, m_projection * m_camera.view(), m_sourceViewProjection);
         m_quaternius2 = new Quaternius(500.f, m_projection * m_camera.view(), m_sourceViewProjection);

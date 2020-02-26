@@ -14,3 +14,6 @@ Doxyfile
 *.css
 data/misc/*
 Makefile
+premake/*
+tps/tp2/*.png
+tps/tp2/*.hdr

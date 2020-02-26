@@ -356,8 +356,8 @@ Color indirect(Vector p, Vector pn,
 
 int main( const int argc, const char **argv )
 {
-    const char *mesh_filename= "tps/tp2/cornell.obj";
-    const char *orbiter_filename= "tps/tp2/cornell_orbiter.txt";
+    const char *mesh_filename= "data/cornell/cornell.obj";
+    const char *orbiter_filename= "data/cornell/cornell_orbiter.txt";
     
     if(argc > 1) mesh_filename= argv[1];
     if(argc > 2) orbiter_filename= argv[2];
