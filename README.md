@@ -1,43 +1,35 @@
-# Synthèse d'images
+# Image synthesis
 
-Pour générer les makefiles des différents projets :
+*More info on this page: http://thomas-raynaud.space/index.html#/projects/3D-image-synthesis*
+
+Generate the makefiles of the different image synthesis projects:
 
 ```
 premake4 --file=premake4_tp_synthese.lua gmake
 ```
 
-# TP 1 :
+# TP1 - OpenGL pipeline
 
-Compilation :
+Compilation and execution:
 ```
-make tp1
-```
-
-Exécution : 
-```
-bin/tp1
+make tp1 && bin/tp1
 ```
 
-# TP 2 :
+# TP2 - Raytracing
 
-Compilation :
+Compilation:
 ```
 make tp2 config=release64 -j4 && make image_viewer
 ```
 
-Exécution : 
+Execution: 
 ```
 bin/tp2 && bin/image_viewer tps/tp2/render.hdr
 ```
 
-# TP 3 :
+# TP3 - Raytracing, compute shaders and BVH
 
-Compilation :
+Compilation and execution:
 ```
-make tp3
-```
-
-Exécution : 
-```
-bin/tp3
+make tp3 && bin/tp3
 ```
