@@ -2,6 +2,8 @@
 
 *More info on this page: http://thomas-raynaud.space/index.html#/projects/3D-image-synthesis*
 
+This project uses [gKit2 light](https://perso.univ-lyon1.fr/jean-claude.iehl/Public/educ/M1IMAGE/html/index.html).
+
 Generate the makefiles of the different image synthesis projects:
 
 ```
